@@ -1,0 +1,698 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+    {% if user_account %}
+        <!-- Combined Welcome and Progress Section -->
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <!-- Welcome Section -->
+                    <div class="col-md-4 border-end">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="welcome-icon me-3">
+                                <i class="bi bi-person-circle fs-1 text-primary"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">Welcome, {{ user_account }}!</h4>
+                                <p class="text-muted mb-0">Start your journey today</p>
+                            </div>
+                        </div>
+                        <div class="study-stats mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-book text-primary me-2"></i>
+                                <span class="text-muted">快完成了</span>
+                                {% if closest_book %}
+                                    <span class="ms-2">{{ closest_book.name }} ({{ closest_book.completed }}/{{ closest_book.total }})</span>
+                                {% else %}
+                                    <span class="ms-2">尚未開始閱讀</span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span class="text-muted">上次讀到</span>
+                                {% if last_reading %}
+                                    <span class="ms-2">{{ last_reading }}</span>
+                                {% else %}
+                                    <span class="ms-2">尚未開始閱讀</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Progress Section -->
+                    <div class="col-md-4 border-end">
+                        <div class="text-center mb-3">
+                            <h5 class="mb-1">Overall Progress</h5>
+                            <p class="text-muted small">Your journey through the Bible</p>
+                        </div>
+                        <div class="progress-circle mx-auto" data-progress="{{ user_progress.total_completed }}" data-total="1984">
+                            <svg class="progress-circle-svg" viewBox="0 0 100 100">
+                                <circle class="progress-circle-bg" cx="50" cy="50" r="45"/>
+                                <circle class="progress-circle-fill" cx="50" cy="50" r="45"/>
+                            </svg>
+                            <div class="progress-circle-text">
+                                <span class="progress-circle-number">{{ user_progress.total_completed }}</span>
+                                <span class="progress-circle-label">of 1984</span>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <span class="badge bg-primary rounded-pill">
+                                {{ (user_progress.total_completed / 1984 * 100)|round }}% Complete
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Next Achievement Section -->
+                    <div class="col-md-4">
+                        <div class="text-center mb-3">
+                            <h5 class="mb-1">Next Achievement</h5>
+                            <p class="text-muted small">Keep going to unlock rewards</p>
+                        </div>
+                        {% if user_progress.next_achievement %}
+                            <div class="achievement-card p-3 bg-light rounded">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-trophy-fill text-warning fs-4 me-2"></i>
+                                    <h6 class="mb-0">{{ user_progress.next_achievement.name }}</h6>
+                                </div>
+                                {% set next_target = user_progress.next_achievement.condition.split('=')[1].strip() %}
+                                {% set progress_percentage = (user_progress.total_completed / next_target|int * 100)|round %}
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" role="progressbar" 
+                                         style="width: {{ progress_percentage }}%" 
+                                         aria-valuenow="{{ progress_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted">Progress</small>
+                                    <small class="fw-bold">{{ user_progress.total_completed }}/{{ next_target }}</small>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="bi bi-emoji-smile fs-1"></i>
+                                <p class="mt-2">You have completed all achievements!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Selection and Chapters Section -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title d-flex align-items-center">
+                            <i class="bi bi-book me-2"></i>
+                            Select a Book to Study
+                        </h5>
+                        <select id="bookSelector" class="form-select" onchange="handleBookSelection()">
+                            <option value="">Choose a book...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title d-flex align-items-center">
+                            <i class="bi bi-list-ol me-2"></i>
+                            Chapters
+                        </h5>
+                        <div id="chapterButtons" class="d-flex flex-wrap gap-2">
+                            <!-- Chapter buttons will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="contentSection" class="mt-4 d-none">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title" id="contentTitle">Book Chapter</h5>
+                        <div class="d-flex gap-2">
+                            <button id="completeButton" class="btn btn-success" onclick="markChapterComplete()">
+                                完成
+                            </button>
+                            <button id="backButton" class="btn btn-outline-secondary" onclick="showSelectorSection()">
+                                <i class="bi bi-arrow-left"></i> Back to Books
+                            </button>
+                        </div>
+                    </div>
+                    <div id="contentArea" class="content-area">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* Progress Circle Styles */
+            .progress-circle {
+                position: relative;
+                width: 150px;
+                height: 150px;
+                margin: 0 auto;
+            }
+            
+            .progress-circle-svg {
+                transform: rotate(-90deg);
+            }
+            
+            .progress-circle-bg {
+                fill: none;
+                stroke: #e9ecef;
+                stroke-width: 8;
+            }
+            
+            .progress-circle-fill {
+                fill: none;
+                stroke: #0d6efd;
+                stroke-width: 8;
+                stroke-dasharray: 283;
+                stroke-dashoffset: 283;
+                transition: stroke-dashoffset 1s ease-in-out;
+            }
+            
+            .progress-circle-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+            }
+            
+            .progress-circle-number {
+                font-size: 28px;
+                font-weight: bold;
+                color: #0d6efd;
+                display: block;
+                line-height: 1.2;
+            }
+            
+            .progress-circle-label {
+                font-size: 14px;
+                color: #6c757d;
+                display: block;
+            }
+
+            .achievement-card {
+                background-color: #fff8e1;
+                border: 1px solid #ffe0b2;
+            }
+
+            .welcome-icon {
+                color: #0d6efd;
+            }
+
+            .study-stats {
+                padding: 1rem;
+                background-color: #f8f9fa;
+                border-radius: 0.5rem;
+            }
+
+            .study-stats i {
+                font-size: 1.2rem;
+            }
+
+            .card {
+                transition: transform 0.2s ease-in-out;
+            }
+
+            .card:hover {
+                transform: translateY(-2px);
+            }
+
+            .chapter-btn {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                background-color: white;
+                border: 1px solid #dee2e6;
+                color: #495057;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                position: relative;
+            }
+            
+            .chapter-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border-color: #0d6efd;
+                color: #0d6efd;
+            }
+
+            .chapter-btn.completed {
+                background-color: #198754;
+                color: white;
+                border-color: #198754;
+                font-weight: bold;
+            }
+
+            .chapter-btn.completed:hover {
+                background-color: #157347;
+                border-color: #146c43;
+            }
+            
+            .content-area {
+                max-height: 70vh;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                font-family: "Microsoft YaHei", "SimSun", serif;
+                line-height: 1.8;
+                padding: 1rem;
+                background-color: #f8f9fa;
+                border-radius: 0.5rem;
+            }
+
+            .badge {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        </style>
+
+        <script>
+            // Update progress circle
+            document.addEventListener('DOMContentLoaded', function() {
+                const progressCircle = document.querySelector('.progress-circle');
+                if (progressCircle) {
+                    const progress = progressCircle.dataset.progress;
+                    const total = progressCircle.dataset.total;
+                    const percentage = (progress / total) * 100;
+                    const dashOffset = 283 - (283 * percentage / 100);
+                    
+                    const fillCircle = progressCircle.querySelector('.progress-circle-fill');
+                    fillCircle.style.strokeDashoffset = dashOffset;
+                }
+            });
+            
+            // Parse the books info from the server
+            var booksInfo = JSON.parse('{{ books_info | safe }}');
+            var currentBook = null;
+            
+            // 書籍顏色映射
+            const bookColors = {
+                'GEN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'EXO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'LEV': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'NUM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'DETU': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JOS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JDG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'RUT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1SA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2SA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1KI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2KI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1CH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2CH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'EZR': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'NEH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'EST': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JOB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'PSA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'PRO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ECC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'SNG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ISA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JER': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'LAM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'EZK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'DAN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'HOS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JOL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'AMO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'OBA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JON': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'MIC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'NAM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'HAB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ZEP': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'HAG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ZEC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'MAL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'MAT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'MRK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'LUK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JHN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ACT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'ROM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1CO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2CO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'GAL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'EPH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'PHP': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'COL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1TH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2TH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1TI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2TI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'TIT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'PHM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'HEB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JAS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1PE': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2PE': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '1JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '2JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                '3JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'JUD': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
+                'REV': { bg: '#ffffff', text: '#333333', border: '#cccccc' }
+            };
+            
+            // 獲取書籍顏色的函數
+            function getBookColor(bookCode) {
+                // 檢查是否有特定的顏色映射
+                if (bookColors[bookCode]) {
+                    return bookColors[bookCode];
+                }
+                
+                // 如果沒有特定的顏色映射，使用默認顏色
+                return { bg: '#ffffff', text: '#333333', border: '#cccccc' };
+            }
+            
+            // Populate the selector
+            function populateBookSelector() {
+                var selector = document.getElementById('bookSelector');
+                booksInfo.forEach(function(book) {
+                    var option = document.createElement('option');
+                    option.value = book.code;
+                    option.textContent = book.name;
+                    option.setAttribute('data-chapters', book.chapter);
+                    option.setAttribute('data-sql', book.sql);
+                    selector.appendChild(option);
+                });
+            }
+
+            // Handle book selection
+            function handleBookSelection() {
+                const bookSelect = document.getElementById('bookSelector');
+                const selectedBook = booksInfo.find(book => book.code === bookSelect.value);
+                
+                if (!selectedBook) {
+                    console.error('Selected book not found in booksInfo');
+                    return;
+                }
+                
+                // 設置當前書籍
+                currentBook = selectedBook;
+                console.log('Selected book:', currentBook);
+                
+                // 清空現有的章節按鈕
+                const chapterContainer = document.getElementById('chapterButtons');
+                chapterContainer.innerHTML = '';
+                
+                // 一次性獲取所有章節的狀態
+                fetch(`/get_book_status?code=${selectedBook.code}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Book status data:', data);
+                        
+                        if (data.error) {
+                            console.error('Error fetching book status:', data.error);
+                            return;
+                        }
+                        
+                        // 創建章節按鈕
+                        for (let i = 1; i <= selectedBook.chapter; i++) {
+                            const button = document.createElement('button');
+                            button.className = 'chapter-btn';
+                            button.textContent = i;  // 只顯示數字
+                            
+                            // 根據返回的狀態設置按鈕樣式
+                            if (data.chapters[i - 1] === '1') {
+                                button.classList.add('completed');
+                            }
+                            
+                            button.onclick = () => loadChapterContent(selectedBook.sql, selectedBook.code, i);
+                            chapterContainer.appendChild(button);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching book status:', error);
+                        // 即使請求失敗，也創建章節按鈕
+                        for (let i = 1; i <= selectedBook.chapter; i++) {
+                            const button = document.createElement('button');
+                            button.className = 'chapter-btn';
+                            button.textContent = i;  // 只顯示數字
+                            button.onclick = () => loadChapterContent(selectedBook.sql, selectedBook.code, i);
+                            chapterContainer.appendChild(button);
+                        }
+                    });
+            }
+            
+            // Load chapter content
+            function loadChapterContent(bookSql, bookCode, chapter) {
+                // 將 chapter 轉換為字符串
+                const chapterStr = chapter.toString();
+                
+                // 根據書籍代碼決定是否需要補零
+                let formattedChapter;
+                if (['GEN', 'EXO', 'LEV', 'NUM'].includes(bookCode)) {
+                    // 前四卷使用三位數格式
+                    formattedChapter = chapterStr.padStart(3, '0');
+                } else {
+                    // 其他書籍使用兩位數格式
+                    formattedChapter = chapterStr.padStart(2, '0');
+                }
+                
+                // 更新標題
+                document.getElementById('contentTitle').textContent = 
+                    currentBook.name + ' - Chapter ' + chapter;
+                
+                // 隱藏所有選擇相關的區塊
+                document.querySelector('.card.mb-4').classList.add('d-none'); // 隱藏歡迎區塊
+                document.querySelector('.row').classList.add('d-none'); // 隱藏選擇器區塊
+                document.querySelector('.row:nth-of-type(2)').classList.add('d-none'); // 隱藏 Book Selection and Chapters Section
+                document.getElementById('contentSection').classList.remove('d-none'); // 顯示內容區塊
+                
+                // 顯示加載中信息
+                document.getElementById('contentArea').textContent = 'Loading...';
+                
+                // 發送請求獲取內容
+                fetch(`/get_book_content?sql=${bookSql}&code=${bookCode}&chapter=${formattedChapter}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            document.getElementById('contentArea').textContent = 
+                                'Error: ' + data.error;
+                        } else {
+                            document.getElementById('contentArea').textContent = data.content;
+                            // 更新完成按鈕狀態
+                            updateCompleteButtonState(bookCode, chapter);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('contentArea').textContent = 
+                            'Error loading content. Please try again.';
+                    });
+            }
+            
+            // Show selector section
+            function showSelectorSection() {
+                // 顯示所有選擇相關的區塊
+                document.querySelector('.card.mb-4').classList.remove('d-none'); // 顯示歡迎區塊
+                document.querySelector('.row').classList.remove('d-none'); // 顯示選擇器區塊
+                document.querySelector('.row:nth-of-type(2)').classList.remove('d-none'); // 顯示 Book Selection and Chapters Section
+                document.getElementById('contentSection').classList.add('d-none'); // 隱藏內容區塊
+
+                // 重新獲取並更新進度資訊
+                fetch('/get_user_progress')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error fetching progress:', data.error);
+                            return;
+                        }
+
+                        // 更新總進度圓圈
+                        const progressCircle = document.querySelector('.progress-circle');
+                        if (progressCircle) {
+                            const progress = data.total_completed;
+                            const total = 1984;
+                            const percentage = (progress / total) * 100;
+                            const dashOffset = 283 - (283 * percentage / 100);
+                            
+                            const fillCircle = progressCircle.querySelector('.progress-circle-fill');
+                            fillCircle.style.strokeDashoffset = dashOffset;
+                            
+                            // 更新進度數字
+                            const progressNumber = progressCircle.querySelector('.progress-circle-number');
+                            if (progressNumber) {
+                                progressNumber.textContent = progress;
+                            }
+                            
+                            // 更新完成百分比標籤
+                            const progressBadge = document.querySelector('.badge.bg-primary');
+                            if (progressBadge) {
+                                progressBadge.textContent = `${Math.round(percentage)}% Complete`;
+                            }
+                        }
+
+                        // 更新下一個成就
+                        const achievementCard = document.querySelector('.achievement-card');
+                        if (data.next_achievement) {
+                            if (achievementCard) {
+                                const nextTarget = data.next_achievement.condition.split('=')[1].trim();
+                                const progressPercentage = (data.total_completed / nextTarget * 100);
+                                
+                                // 更新成就名稱
+                                const achievementName = achievementCard.querySelector('h6');
+                                if (achievementName) {
+                                    achievementName.textContent = data.next_achievement.name;
+                                }
+                                
+                                // 更新進度條
+                                const progressBar = achievementCard.querySelector('.progress-bar');
+                                if (progressBar) {
+                                    progressBar.style.width = `${progressPercentage}%`;
+                                    progressBar.setAttribute('aria-valuenow', progressPercentage);
+                                }
+                                
+                                // 更新進度數字
+                                const progressText = achievementCard.querySelector('.fw-bold');
+                                if (progressText) {
+                                    progressText.textContent = `${data.total_completed}/${nextTarget}`;
+                                }
+                            }
+                        } else {
+                            // 如果沒有下一個成就，顯示完成訊息
+                            if (achievementCard) {
+                                achievementCard.innerHTML = `
+                                    <div class="text-center text-muted">
+                                        <i class="bi bi-emoji-smile fs-1"></i>
+                                        <p class="mt-2">You have completed all achievements!</p>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        // 更新快完成的書
+                        const closestBookText = document.querySelector('.study-stats .d-flex:first-child .ms-2');
+                        if (data.closest_book) {
+                            if (closestBookText) {
+                                closestBookText.textContent = `${data.closest_book.name} (${data.closest_book.completed}/${data.closest_book.total})`;
+                            }
+                        } else {
+                            if (closestBookText) {
+                                closestBookText.textContent = '尚未開始閱讀';
+                            }
+                        }
+
+                        // 更新上次讀到
+                        const lastReadingText = document.querySelector('.study-stats .d-flex:last-child .ms-2');
+                        if (data.last_reading) {
+                            if (lastReadingText) {
+                                lastReadingText.textContent = data.last_reading;
+                            }
+                        } else {
+                            if (lastReadingText) {
+                                lastReadingText.textContent = '尚未開始閱讀';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating progress:', error);
+                    });
+            }
+            
+            // 更新完成按鈕狀態
+            function updateCompleteButtonState(bookCode, chapter) {
+                fetch(`/get_chapter_status?code=${bookCode}&chapter=${chapter}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const completeButton = document.getElementById('completeButton');
+                        if (data.is_completed) {
+                            completeButton.classList.add('btn-success');
+                            completeButton.classList.remove('btn-outline-success');
+                            completeButton.innerHTML = '<i class="bi bi-check-circle"></i> 已完成';
+                        } else {
+                            completeButton.classList.remove('btn-success');
+                            completeButton.classList.add('btn-outline-success');
+                            completeButton.innerHTML = '完成';
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            // 標記章節為已完成
+            function markChapterComplete() {
+                if (!currentBook) return;
+                
+                const chapter = document.getElementById('contentTitle').textContent.split('Chapter ')[1];
+                const bookCode = currentBook.code;
+                
+                fetch('/mark_chapter_complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: bookCode,
+                        chapter: chapter
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新按鈕狀態
+                        updateCompleteButtonState(bookCode, chapter);
+                        // 更新章節按鈕狀態
+                        updateChapterButtonState(chapter);
+                    } else {
+                        alert('Failed to mark chapter as complete: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to mark chapter as complete');
+                });
+            }
+
+            // 更新章節按鈕狀態
+            function updateChapterButtonState(chapter) {
+                const buttons = document.querySelectorAll('.chapter-btn');
+                buttons.forEach(button => {
+                    if (button.textContent === chapter) {
+                        button.classList.add('completed');
+                        button.style.backgroundColor = '#28a745';
+                        button.style.color = 'white';
+                        button.style.borderColor = '#28a745';
+                        button.innerHTML = `${chapter}`;
+                    }
+                });
+            }
+            
+            // Initialize the page
+            document.addEventListener('DOMContentLoaded', function() {
+                populateBookSelector();
+                
+                // 如果有選中的書籍，顯示章節完成狀態
+                const selector = document.getElementById('bookSelector');
+                if (selector.value) {
+                    handleBookSelection();
+                }
+                
+                // 添加調試信息
+                console.log("Page initialized, booksInfo:", booksInfo);
+            });
+        </script>
+    {% else %}
+        <p>Please <a href="{{ url_for('auth.login') }}">login</a> to access the content.</p>
+    {% endif %}
+{% endblock %}

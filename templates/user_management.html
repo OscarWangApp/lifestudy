@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">User Management</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Location</th>
+                    <th>Birth Year</th>
+                    <th>Achievement</th>
+                    <th>Auth Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.account }}</td>
+                    <td>{{ user.location }}</td>
+                    <td>{{ user.birth_year }}</td>
+                    <td>{{ user.achievement }}</td>
+                    <td>
+                        <select class="form-select auth-select" data-account="{{ user.account }}">
+                            <option value="1" {% if user.auth == '1' %}selected{% endif %}>User</option>
+                            <option value="2" {% if user.auth == '2' %}selected{% endif %}>Editor</option>
+                            <option value="3" {% if user.auth == '3' %}selected{% endif %}>Admin</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm delete-user" data-account="{{ user.account }}">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 處理權限變更
+    document.querySelectorAll('.auth-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const account = this.dataset.account;
+            const newAuth = this.value;
+            
+            fetch('/auth/update_auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account: account,
+                    auth: newAuth
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Auth level updated successfully');
+                } else {
+                    alert('Failed to update auth level');
+                    // 如果更新失敗，恢復原來的選項
+                    this.value = this.getAttribute('data-original-value');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating auth level');
+            });
+        });
+        
+        // 保存原始值
+        select.setAttribute('data-original-value', select.value);
+    });
+
+    // 處理刪除用戶
+    document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const account = this.dataset.account;
+            if (confirm(`Are you sure you want to delete user ${account}?`)) {
+                fetch('/auth/delete_user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        account: account
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 從表格中移除該行
+                        this.closest('tr').remove();
+                        alert('User deleted successfully');
+                    } else {
+                        alert('Failed to delete user');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting user');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
