@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}Home{% endblock %}
+{% block title %}首頁{% endblock %}
 {% block content %}
     {% if user_account %}
         <!-- Combined Welcome and Progress Section -->
-        <div class="card mb-4 border-0 shadow-sm">
+        <div id="welcomeSection" class="card mb-4 border-0 shadow-sm">
             <div class="card-body p-4">
                 <div class="row align-items-center">
                     <!-- Welcome Section -->
@@ -13,8 +13,8 @@
                                 <i class="bi bi-person-circle fs-1 text-primary"></i>
                             </div>
                             <div>
-                                <h4 class="mb-1">Welcome, {{ user_account }}!</h4>
-                                <p class="text-muted mb-0">Start your journey today</p>
+                                <h4 class="mb-1">歡迎，{{ user_account }}！</h4>
+                                <p class="text-muted mb-0">開始今天的學習之旅</p>
                             </div>
                         </div>
                         <div class="study-stats mt-4">
@@ -42,8 +42,8 @@
                     <!-- Overall Progress Section -->
                     <div class="col-md-4 border-end">
                         <div class="text-center mb-3">
-                            <h5 class="mb-1">Overall Progress</h5>
-                            <p class="text-muted small">Your journey through the Bible</p>
+                            <h5 class="mb-1">整體進度</h5>
+                            <p class="text-muted small">您的聖經學習之旅</p>
                         </div>
                         <div class="progress-circle mx-auto" data-progress="{{ user_progress.total_completed }}" data-total="1984">
                             <svg class="progress-circle-svg" viewBox="0 0 100 100">
@@ -52,12 +52,12 @@
                             </svg>
                             <div class="progress-circle-text">
                                 <span class="progress-circle-number">{{ user_progress.total_completed }}</span>
-                                <span class="progress-circle-label">of 1984</span>
+                                <span class="progress-circle-label">共 1984 章</span>
                             </div>
                         </div>
                         <div class="text-center mt-3">
                             <span class="badge bg-primary rounded-pill">
-                                {{ (user_progress.total_completed / 1984 * 100)|round }}% Complete
+                                完成度 {{ (user_progress.total_completed / 1984 * 100)|round }}%
                             </span>
                         </div>
                     </div>
@@ -65,8 +65,8 @@
                     <!-- Next Achievement Section -->
                     <div class="col-md-4">
                         <div class="text-center mb-3">
-                            <h5 class="mb-1">Next Achievement</h5>
-                            <p class="text-muted small">Keep going to unlock rewards</p>
+                            <h5 class="mb-1">下一個成就</h5>
+                            <p class="text-muted small">繼續努力解鎖獎勵</p>
                         </div>
                         {% if user_progress.next_achievement %}
                             <div class="achievement-card p-3 bg-light rounded">
@@ -85,14 +85,14 @@
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between mt-2">
-                                    <small class="text-muted">Progress</small>
+                                    <small class="text-muted">進度</small>
                                     <small class="fw-bold">{{ user_progress.total_completed }}/{{ next_target }}</small>
                                 </div>
                             </div>
                         {% else %}
                             <div class="text-center text-muted">
                                 <i class="bi bi-emoji-smile fs-1"></i>
-                                <p class="mt-2">You have completed all achievements!</p>
+                                <p class="mt-2">您已完成所有成就！</p>
                             </div>
                         {% endif %}
                     </div>
@@ -101,16 +101,16 @@
         </div>
 
         <!-- Book Selection and Chapters Section -->
-        <div class="row">
+        <div id="selectionSection" class="row">
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title d-flex align-items-center">
                             <i class="bi bi-book me-2"></i>
-                            Select a Book to Study
+                            選擇要學習的書卷
                         </h5>
                         <select id="bookSelector" class="form-select" onchange="handleBookSelection()">
-                            <option value="">Choose a book...</option>
+                            <option value="">選擇書卷...</option>
                         </select>
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                     <div class="card-body">
                         <h5 class="card-title d-flex align-items-center">
                             <i class="bi bi-list-ol me-2"></i>
-                            Chapters
+                            章節
                         </h5>
                         <div id="chapterButtons" class="d-flex flex-wrap gap-2">
                             <!-- Chapter buttons will be dynamically added here -->
@@ -134,13 +134,13 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title" id="contentTitle">Book Chapter</h5>
+                        <h5 class="card-title" id="contentTitle">書卷章節</h5>
                         <div class="d-flex gap-2">
                             <button id="completeButton" class="btn btn-success" onclick="markChapterComplete()">
                                 完成
                             </button>
                             <button id="backButton" class="btn btn-outline-secondary" onclick="showSelectorSection()">
-                                <i class="bi bi-arrow-left"></i> Back to Books
+                                <i class="bi bi-arrow-left"></i> 返回書卷
                             </button>
                         </div>
                     </div>
@@ -248,21 +248,14 @@
                 transform: translateY(-2px);
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 border-color: #0d6efd;
-                color: #0d6efd;
             }
 
             .chapter-btn.completed {
                 background-color: #198754;
                 color: white;
                 border-color: #198754;
-                font-weight: bold;
             }
 
-            .chapter-btn.completed:hover {
-                background-color: #157347;
-                border-color: #146c43;
-            }
-            
             .content-area {
                 max-height: 70vh;
                 overflow-y: auto;
@@ -273,16 +266,26 @@
                 background-color: #f8f9fa;
                 border-radius: 0.5rem;
             }
-
-            .badge {
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
-            }
         </style>
 
         <script>
-            // Update progress circle
+            // 初始化書籍選擇器
             document.addEventListener('DOMContentLoaded', function() {
+                const books = {{ books|tojson|safe }};
+                const bookSelector = document.getElementById('bookSelector');
+                
+                // 清空選擇器
+                bookSelector.innerHTML = '<option value="">選擇書卷...</option>';
+                
+                // 添加書籍選項
+                books.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book.code;
+                    option.textContent = book.name;
+                    bookSelector.appendChild(option);
+                });
+
+                // 初始化進度圓圈
                 const progressCircle = document.querySelector('.progress-circle');
                 if (progressCircle) {
                     const progress = progressCircle.dataset.progress;
@@ -295,228 +298,149 @@
                 }
             });
             
-            // Parse the books info from the server
-            var booksInfo = JSON.parse('{{ books_info | safe }}');
-            var currentBook = null;
-            
-            // 書籍顏色映射
-            const bookColors = {
-                'GEN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'EXO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'LEV': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'NUM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'DETU': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JOS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JDG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'RUT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1SA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2SA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1KI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2KI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1CH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2CH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'EZR': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'NEH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'EST': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JOB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'PSA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'PRO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ECC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'SNG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ISA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JER': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'LAM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'EZK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'DAN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'HOS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JOL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'AMO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'OBA': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JON': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'MIC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'NAM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'HAB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ZEP': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'HAG': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ZEC': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'MAL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'MAT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'MRK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'LUK': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JHN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ACT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'ROM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1CO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2CO': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'GAL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'EPH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'PHP': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'COL': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1TH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2TH': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1TI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2TI': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'TIT': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'PHM': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'HEB': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JAS': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1PE': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2PE': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '1JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '2JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                '3JN': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'JUD': { bg: '#ffffff', text: '#333333', border: '#cccccc' },
-                'REV': { bg: '#ffffff', text: '#333333', border: '#cccccc' }
-            };
-            
-            // 獲取書籍顏色的函數
-            function getBookColor(bookCode) {
-                // 檢查是否有特定的顏色映射
-                if (bookColors[bookCode]) {
-                    return bookColors[bookCode];
-                }
-                
-                // 如果沒有特定的顏色映射，使用默認顏色
-                return { bg: '#ffffff', text: '#333333', border: '#cccccc' };
-            }
-            
-            // Populate the selector
-            function populateBookSelector() {
-                var selector = document.getElementById('bookSelector');
-                booksInfo.forEach(function(book) {
-                    var option = document.createElement('option');
-                    option.value = book.code;
-                    option.textContent = book.name;
-                    option.setAttribute('data-chapters', book.chapter);
-                    option.setAttribute('data-sql', book.sql);
-                    selector.appendChild(option);
-                });
-            }
-
-            // Handle book selection
+            // 處理書籍選擇
             function handleBookSelection() {
-                const bookSelect = document.getElementById('bookSelector');
-                const selectedBook = booksInfo.find(book => book.code === bookSelect.value);
+                const bookCode = document.getElementById('bookSelector').value;
+                const chapterButtons = document.getElementById('chapterButtons');
                 
-                if (!selectedBook) {
-                    console.error('Selected book not found in booksInfo');
+                // 清空章節按鈕
+                chapterButtons.innerHTML = '';
+                
+                if (!bookCode) {
                     return;
                 }
                 
-                // 設置當前書籍
-                currentBook = selectedBook;
-                console.log('Selected book:', currentBook);
-                
-                // 清空現有的章節按鈕
-                const chapterContainer = document.getElementById('chapterButtons');
-                chapterContainer.innerHTML = '';
-                
-                // 一次性獲取所有章節的狀態
-                fetch(`/get_book_status?code=${selectedBook.code}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Book status data:', data);
-                        
-                        if (data.error) {
-                            console.error('Error fetching book status:', data.error);
-                            return;
-                        }
-                        
-                        // 創建章節按鈕
-                        for (let i = 1; i <= selectedBook.chapter; i++) {
-                            const button = document.createElement('button');
-                            button.className = 'chapter-btn';
-                            button.textContent = i;  // 只顯示數字
-                            
-                            // 根據返回的狀態設置按鈕樣式
-                            if (data.chapters[i - 1] === '1') {
-                                button.classList.add('completed');
-                            }
-                            
-                            button.onclick = () => loadChapterContent(selectedBook.sql, selectedBook.code, i);
-                            chapterContainer.appendChild(button);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching book status:', error);
-                        // 即使請求失敗，也創建章節按鈕
-                        for (let i = 1; i <= selectedBook.chapter; i++) {
-                            const button = document.createElement('button');
-                            button.className = 'chapter-btn';
-                            button.textContent = i;  // 只顯示數字
-                            button.onclick = () => loadChapterContent(selectedBook.sql, selectedBook.code, i);
-                            chapterContainer.appendChild(button);
-                        }
-                    });
-            }
-            
-            // Load chapter content
-            function loadChapterContent(bookSql, bookCode, chapter) {
-                // 將 chapter 轉換為字符串
-                const chapterStr = chapter.toString();
-                
-                // 根據書籍代碼決定是否需要補零
-                let formattedChapter;
-                if (['GEN', 'EXO', 'LEV', 'NUM'].includes(bookCode)) {
-                    // 前四卷使用三位數格式
-                    formattedChapter = chapterStr.padStart(3, '0');
-                } else {
-                    // 其他書籍使用兩位數格式
-                    formattedChapter = chapterStr.padStart(2, '0');
-                }
-                
-                // 更新標題
-                document.getElementById('contentTitle').textContent = 
-                    currentBook.name + ' - Chapter ' + chapter;
-                
-                // 隱藏所有選擇相關的區塊
-                document.querySelector('.card.mb-4').classList.add('d-none'); // 隱藏歡迎區塊
-                document.querySelector('.row').classList.add('d-none'); // 隱藏選擇器區塊
-                document.querySelector('.row:nth-of-type(2)').classList.add('d-none'); // 隱藏 Book Selection and Chapters Section
-                document.getElementById('contentSection').classList.remove('d-none'); // 顯示內容區塊
-                
-                // 顯示加載中信息
-                document.getElementById('contentArea').textContent = 'Loading...';
-                
-                // 發送請求獲取內容
-                fetch(`/get_book_content?sql=${bookSql}&code=${bookCode}&chapter=${formattedChapter}`)
+                fetch(`/get_chapters/${bookCode}`)
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
                         if (data.error) {
-                            document.getElementById('contentArea').textContent = 
-                                'Error: ' + data.error;
-                        } else {
-                            document.getElementById('contentArea').textContent = data.content;
-                            // 更新完成按鈕狀態
-                            updateCompleteButtonState(bookCode, chapter);
+                            console.error('Error:', data.error);
+                            return;
                         }
+                        
+                        data.chapters.forEach(chapter => {
+                            const button = document.createElement('button');
+                            button.className = 'chapter-btn';
+                            button.textContent = chapter.chapter_number;
+                            button.dataset.chapter = chapter.chapter_number;
+                            button.onclick = () => loadChapter(bookCode, chapter.chapter_number);
+                            
+                            if (chapter.completed) {
+                                button.classList.add('completed');
+                                button.innerHTML = `<i class="bi bi-check"></i>`;
+                            }
+                            
+                            chapterButtons.appendChild(button);
+                        });
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        document.getElementById('contentArea').textContent = 
-                            'Error loading content. Please try again.';
+                        chapterButtons.innerHTML = '<div class="alert alert-danger">載入章節時發生錯誤</div>';
                     });
             }
-            
-            // Show selector section
-            function showSelectorSection() {
-                // 顯示所有選擇相關的區塊
-                document.querySelector('.card.mb-4').classList.remove('d-none'); // 顯示歡迎區塊
-                document.querySelector('.row').classList.remove('d-none'); // 顯示選擇器區塊
-                document.querySelector('.row:nth-of-type(2)').classList.remove('d-none'); // 顯示 Book Selection and Chapters Section
-                document.getElementById('contentSection').classList.add('d-none'); // 隱藏內容區塊
 
-                // 重新獲取並更新進度資訊
+            // 載入章節內容
+            function loadChapter(bookCode, chapterNumber) {
+                if (!bookCode || !chapterNumber) {
+                    console.error('Invalid book code or chapter number');
+                    return;
+                }
+                
+                fetch(`/get_chapter_content/${bookCode}/${chapterNumber}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+
+                        document.getElementById('contentTitle').textContent = data.title;
+                        document.getElementById('contentArea').innerHTML = data.content;
+                        
+                        // 隱藏歡迎區塊和選擇區塊，顯示內容區塊
+                        document.getElementById('welcomeSection').classList.add('d-none');
+                        document.getElementById('selectionSection').classList.add('d-none');
+                        document.getElementById('contentSection').classList.remove('d-none');
+                        
+                        // 更新完成按鈕狀態
+                        const completeButton = document.getElementById('completeButton');
+                        completeButton.dataset.bookCode = bookCode;
+                        completeButton.dataset.chapterNumber = chapterNumber;
+                        completeButton.disabled = data.completed;
+                        completeButton.textContent = data.completed ? '已完成' : '完成';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('contentArea').innerHTML = '<div class="alert alert-danger">載入內容時發生錯誤</div>';
+                    });
+            }
+
+            // 返回書卷選擇
+            function showSelectorSection() {
+                // 隱藏內容區塊，顯示歡迎區塊和選擇區塊
+                document.getElementById('contentSection').classList.add('d-none');
+                document.getElementById('welcomeSection').classList.remove('d-none');
+                document.getElementById('selectionSection').classList.remove('d-none');
+            }
+
+            // 標記章節完成
+            function markChapterComplete() {
+                const button = document.getElementById('completeButton');
+                const bookCode = button.dataset.bookCode;
+                const chapterNumber = button.dataset.chapterNumber;
+                
+                fetch('/mark_chapter_complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_code: bookCode,
+                        chapter_number: chapterNumber
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+
+                    if (data.success) {
+                        button.disabled = true;
+                        button.textContent = '已完成';
+                        // 更新章節按鈕狀態
+                        const chapterBtn = document.querySelector(`.chapter-btn[data-chapter="${chapterNumber}"]`);
+                        if (chapterBtn) {
+                            chapterBtn.classList.add('completed');
+                            chapterBtn.innerHTML = `<i class="bi bi-check"></i>`;
+                        }
+                        // 更新進度
+                        updateProgress();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+
+            // 更新進度
+            function updateProgress() {
                 fetch('/get_user_progress')
                     .then(response => response.json())
                     .then(data => {
                         if (data.error) {
-                            console.error('Error fetching progress:', data.error);
+                            console.error('Error:', data.error);
                             return;
                         }
 
@@ -540,7 +464,7 @@
                             // 更新完成百分比標籤
                             const progressBadge = document.querySelector('.badge.bg-primary');
                             if (progressBadge) {
-                                progressBadge.textContent = `${Math.round(percentage)}% Complete`;
+                                progressBadge.textContent = `完成度 ${Math.round(percentage)}%`;
                             }
                         }
 
@@ -576,7 +500,7 @@
                                 achievementCard.innerHTML = `
                                     <div class="text-center text-muted">
                                         <i class="bi bi-emoji-smile fs-1"></i>
-                                        <p class="mt-2">You have completed all achievements!</p>
+                                        <p class="mt-2">您已完成所有成就！</p>
                                     </div>
                                 `;
                             }
@@ -607,92 +531,18 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error updating progress:', error);
+                        console.error('Error:', error);
                     });
             }
-            
-            // 更新完成按鈕狀態
-            function updateCompleteButtonState(bookCode, chapter) {
-                fetch(`/get_chapter_status?code=${bookCode}&chapter=${chapter}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const completeButton = document.getElementById('completeButton');
-                        if (data.is_completed) {
-                            completeButton.classList.add('btn-success');
-                            completeButton.classList.remove('btn-outline-success');
-                            completeButton.innerHTML = '<i class="bi bi-check-circle"></i> 已完成';
-                        } else {
-                            completeButton.classList.remove('btn-success');
-                            completeButton.classList.add('btn-outline-success');
-                            completeButton.innerHTML = '完成';
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-
-            // 標記章節為已完成
-            function markChapterComplete() {
-                if (!currentBook) return;
-                
-                const chapter = document.getElementById('contentTitle').textContent.split('Chapter ')[1];
-                const bookCode = currentBook.code;
-                
-                fetch('/mark_chapter_complete', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code: bookCode,
-                        chapter: chapter
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 更新按鈕狀態
-                        updateCompleteButtonState(bookCode, chapter);
-                        // 更新章節按鈕狀態
-                        updateChapterButtonState(chapter);
-                    } else {
-                        alert('Failed to mark chapter as complete: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to mark chapter as complete');
-                });
-            }
-
-            // 更新章節按鈕狀態
-            function updateChapterButtonState(chapter) {
-                const buttons = document.querySelectorAll('.chapter-btn');
-                buttons.forEach(button => {
-                    if (button.textContent === chapter) {
-                        button.classList.add('completed');
-                        button.style.backgroundColor = '#28a745';
-                        button.style.color = 'white';
-                        button.style.borderColor = '#28a745';
-                        button.innerHTML = `${chapter}`;
-                    }
-                });
-            }
-            
-            // Initialize the page
-            document.addEventListener('DOMContentLoaded', function() {
-                populateBookSelector();
-                
-                // 如果有選中的書籍，顯示章節完成狀態
-                const selector = document.getElementById('bookSelector');
-                if (selector.value) {
-                    handleBookSelection();
-                }
-                
-                // 添加調試信息
-                console.log("Page initialized, booksInfo:", booksInfo);
-            });
         </script>
     {% else %}
-        <p>Please <a href="{{ url_for('auth.login') }}">login</a> to access the content.</p>
+        <div class="text-center mt-5">
+            <h2>歡迎來到生命讀經平台</h2>
+            <p class="lead">請登入以開始您的學習之旅</p>
+            <div class="mt-4">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary me-2">登入</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">註冊</a>
+            </div>
+        </div>
     {% endif %}
 {% endblock %}

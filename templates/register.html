@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Register{% endblock %}
+{% block title %}註冊{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-center align-items-center my-5">
     <div class="card p-4" style="width: 25rem;">
-        <h2 class="text-center">Register</h2>
+        <h2 class="text-center">註冊</h2>
         {% if error %}
             <div class="alert alert-danger" id="error-msg">{{ error }}</div>
         {% else %}
@@ -13,44 +13,44 @@
         {% endif %}
         <form method="POST">
             <div class="mb-3">
-                <label for="account" class="form-label">Account</label>
+                <label for="account" class="form-label">帳號</label>
                 <input type="text" class="form-control" id="account" name="account" required onblur="checkAccountUnique()">
             </div>
             <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
+                <label for="password" class="form-label">密碼</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
 
             <!-- City Selector -->
             <div class="mb-3">
-                <label for="city" class="form-label">City</label>
+                <label for="city" class="form-label">城市</label>
                 <select id="city" name="city" class="form-select" onchange="updateHalls()">
-                    <option value="">Select City</option>
+                    <option value="">選擇城市</option>
                 </select>
             </div>
 
             <!-- Hall Selector -->
             <div class="mb-3">
-                <label for="hall" class="form-label">Hall</label>
+                <label for="hall" class="form-label">會所</label>
                 <select id="hall" name="hall" class="form-select" onchange="updateDistricts()">
-                    <option value="">Select Hall</option>
+                    <option value="">選擇會所</option>
                 </select>
             </div>
 
             <!-- District Selector -->
             <div class="mb-3">
-                <label for="district" class="form-label">District</label>
+                <label for="district" class="form-label">區</label>
                 <select id="district" name="district" class="form-select">
-                    <option value="">Select District</option>
+                    <option value="">選擇區</option>
                 </select>
             </div>
 
             <div class="mb-3">
-                <label for="birth_year" class="form-label">Birth Year</label>
+                <label for="birth_year" class="form-label">出生年</label>
                 <input type="number" class="form-control" id="birth_year" name="birth_year" required>
             </div>
 
-            <button type="submit" class="btn btn-success w-100">Register</button>
+            <button type="submit" class="btn btn-success w-100">註冊</button>
         </form>
     </div>
 </div>
@@ -79,8 +79,8 @@
 
         var selectedCity = citySelector.value;
 
-        hallSelector.innerHTML = "<option value=''>Select Hall</option>";
-        districtSelector.innerHTML = "<option value=''>Select District</option>";
+        hallSelector.innerHTML = "<option value=''>選擇會所</option>";
+        districtSelector.innerHTML = "<option value=''>選擇區</option>";
 
         var uniqueHalls = new Set();
 
@@ -109,7 +109,7 @@
         var selectedCity = citySelector.value;
         var selectedHall = hallSelector.value;
 
-        districtSelector.innerHTML = "<option value=''>Select District</option>";
+        districtSelector.innerHTML = "<option value=''>選擇區</option>";
 
         var uniqueDistricts = new Set();
 
@@ -140,7 +140,7 @@
             .then(data => {
                 if (data.exists) {
                     accountInput.value = ""; // Clear input
-                    errorMsg.textContent = "Account already exists. Please choose another.";
+                    errorMsg.textContent = "此帳號已被使用，請選擇其他帳號。";
                     errorMsg.classList.remove("d-none"); // Show error message
                     accountInput.focus(); // Refocus on input
                 } else {

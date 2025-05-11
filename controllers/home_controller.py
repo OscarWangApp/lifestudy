@@ -14,8 +14,21 @@ def home():
     if user_account:
         # Get books info for the selector
         books_info = get_books_info()
+        
+        # 確保所有值都是可序列化的
+        serializable_books = []
+        for book in books_info:
+            serializable_book = {
+                'id': book.get('id'),
+                'name': book.get('name'),
+                'code': book.get('code'),
+                'chapter': book.get('chapter'),
+                'sql': book.get('sql')
+            }
+            serializable_books.append(serializable_book)
+        
         # 將 books_info 轉換為 JSON 字符串
-        books_info_json = json.dumps(books_info)
+        books_info_json = json.dumps(serializable_books)
         
         # Get user progress information
         user_progress = get_user_progress(user_account)
@@ -34,14 +47,14 @@ def home():
         if last_tag:
             book_code, chapter = last_tag.split('-')
             # Find the book name from books_info
-            for book in books_info:
+            for book in serializable_books:
                 if book['code'].lower() == book_code:
                     last_reading = f"{book['name']} 第{chapter}章"
                     break
         
         # Calculate progress for each book
         book_progress = []
-        for book in books_info:
+        for book in serializable_books:
             book_code = book['code'].lower()
             cursor.execute(f"SELECT {book_code} FROM user_books WHERE account = %s", (user_account,))
             result = cursor.fetchone()
@@ -68,7 +81,7 @@ def home():
         # User is logged in, display the home page with user account information
         return render_template('home.html', 
                             user_account=user_account, 
-                            books_info=books_info_json,
+                            books=serializable_books,
                             user_progress=user_progress,
                             last_reading=last_reading,
                             closest_book=closest_book)
@@ -95,10 +108,109 @@ def get_content():
     content = get_book_content(book_sql, book_code, chapter)
     
     if content is None:
-        return jsonify({'error': 'Content not found'}), 404
+        return jsonify({'error': 'Content not found', 'content': ''}), 404
     
     # 返回內容
-    return jsonify({'content': content})
+    return jsonify({
+        'content': content,
+        'title': f"{book_code} 第{chapter}章",
+        'completed': False  # 默認值
+    })
+
+@home_bp.route('/get_chapters/<book_code>', methods=['GET'])
+def get_chapters(book_code):
+    if not session.get('user_account'):
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if not book_code or book_code == 'null':
+        return jsonify({'error': 'Invalid book code'}), 400
+    
+    try:
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        
+        # 獲取書籍信息
+        cursor.execute("SELECT * FROM books_info WHERE code = %s", (book_code,))
+        book = cursor.fetchone()
+        
+        if not book:
+            return jsonify({'error': 'Book not found'}), 404
+        
+        # 獲取用戶的閱讀記錄
+        book_column = book['code'].lower()
+        cursor.execute(f"SELECT {book_column} FROM user_books WHERE account = %s", (session['user_account'],))
+        result = cursor.fetchone()
+        
+        if not result:
+            # 如果沒有閱讀記錄，創建一個新的記錄
+            cursor.execute(f"""
+                INSERT INTO user_books (account, {book_column})
+                VALUES (%s, %s)
+            """, (session['user_account'], '0' * book['chapter']))
+            db.commit()
+            
+            # 重新獲取記錄
+            cursor.execute(f"SELECT {book_column} FROM user_books WHERE account = %s", (session['user_account'],))
+            result = cursor.fetchone()
+        
+        # 構建章節列表
+        chapters = []
+        status = result[book_column]
+        for i in range(book['chapter']):
+            chapters.append({
+                'chapter_number': i + 1,
+                'completed': status[i] == '1' if i < len(status) else False
+            })
+        
+        return jsonify({'chapters': chapters})
+    except Exception as e:
+        print(f"Error getting chapters: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@home_bp.route('/get_chapter_content/<book_code>/<chapter_number>', methods=['GET'])
+def get_chapter_content(book_code, chapter_number):
+    if not session.get('user_account'):
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if not book_code or book_code == 'null':
+        return jsonify({'error': 'Invalid book code'}), 400
+    
+    try:
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        
+        # 獲取書籍信息
+        cursor.execute("SELECT * FROM books_info WHERE code = %s", (book_code,))
+        book = cursor.fetchone()
+        
+        if not book:
+            return jsonify({'error': 'Book not found'}), 404
+        
+        # 獲取章節內容
+        content = get_book_content(book['sql'], book['code'], chapter_number)
+        
+        if content is None:
+            return jsonify({'error': 'Content not found', 'content': ''}), 404
+        
+        # 獲取章節完成狀態
+        book_column = book['code'].lower()
+        cursor.execute(f"SELECT {book_column} FROM user_books WHERE account = %s", (session['user_account'],))
+        result = cursor.fetchone()
+        
+        completed = False
+        if result and result[book_column]:
+            chapter_index = int(chapter_number) - 1
+            if chapter_index < len(result[book_column]):
+                completed = result[book_column][chapter_index] == '1'
+        
+        return jsonify({
+            'title': f"{book['name']} 第{chapter_number}章",
+            'content': content,
+            'completed': completed
+        })
+    except Exception as e:
+        print(f"Error getting chapter content: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @home_bp.route('/get_chapter_status', methods=['GET'])
 def get_chapter_status():
@@ -142,8 +254,8 @@ def mark_chapter_complete():
         return jsonify({'error': 'Not authenticated'}), 401
     
     data = request.get_json()
-    book_code = data.get('code')
-    chapter = data.get('chapter')
+    book_code = data.get('book_code')
+    chapter = data.get('chapter_number')
     
     if not all([book_code, chapter]):
         return jsonify({'error': 'Missing parameters'}), 400

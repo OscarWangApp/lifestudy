@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}User Management{% endblock %}
+{% block title %}用戶管理{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">User Management</h2>
+    <h2 class="mb-4">用戶管理</h2>
     <div class="table-responsive">
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Account</th>
-                    <th>Location</th>
-                    <th>Birth Year</th>
-                    <th>Achievement</th>
-                    <th>Auth Level</th>
-                    <th>Actions</th>
+                    <th>帳號</th>
+                    <th>地區</th>
+                    <th>出生年</th>
+                    <th>成就</th>
+                    <th>權限等級</th>
+                    <th>操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,13 +26,13 @@
                     <td>{{ user.achievement }}</td>
                     <td>
                         <select class="form-select auth-select" data-account="{{ user.account }}">
-                            <option value="1" {% if user.auth == '1' %}selected{% endif %}>User</option>
-                            <option value="2" {% if user.auth == '2' %}selected{% endif %}>Editor</option>
-                            <option value="3" {% if user.auth == '3' %}selected{% endif %}>Admin</option>
+                            <option value="1" {% if user.auth == '1' %}selected{% endif %}>一般用戶</option>
+                            <option value="2" {% if user.auth == '2' %}selected{% endif %}>編輯者</option>
+                            <option value="3" {% if user.auth == '3' %}selected{% endif %}>管理員</option>
                         </select>
                     </td>
                     <td>
-                        <button class="btn btn-danger btn-sm delete-user" data-account="{{ user.account }}">Delete</button>
+                        <button class="btn btn-danger btn-sm delete-user" data-account="{{ user.account }}">刪除</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -62,16 +62,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Auth level updated successfully');
+                    alert('權限等級更新成功');
                 } else {
-                    alert('Failed to update auth level');
+                    alert('更新權限等級失敗');
                     // 如果更新失敗，恢復原來的選項
                     this.value = this.getAttribute('data-original-value');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating auth level');
+                alert('更新權限等級時發生錯誤');
             });
         });
         
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-user').forEach(button => {
         button.addEventListener('click', function() {
             const account = this.dataset.account;
-            if (confirm(`Are you sure you want to delete user ${account}?`)) {
+            if (confirm(`確定要刪除用戶 ${account} 嗎？`)) {
                 fetch('/auth/delete_user', {
                     method: 'POST',
                     headers: {
@@ -98,14 +98,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         // 從表格中移除該行
                         this.closest('tr').remove();
-                        alert('User deleted successfully');
+                        alert('用戶刪除成功');
                     } else {
-                        alert('Failed to delete user');
+                        alert('刪除用戶失敗');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while deleting user');
+                    alert('刪除用戶時發生錯誤');
                 });
             }
         });
