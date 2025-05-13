@@ -217,6 +217,14 @@ def profile():
         ''')
         location_completed = cursor.fetchone()['completed_count']
 
+        # Calculate completed achievements
+        cursor.execute('''
+            SELECT COUNT(*) as completed_count
+            FROM achievement_info
+            WHERE CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`condition`, '=', -1), ' ', -1) AS UNSIGNED) <= %s
+        ''', (total_completed,))
+        completed_achievements = cursor.fetchone()['completed_count']
+
         # Get next achievement
         print("Debug - SQL Query - Total Completed:", total_completed)
         
@@ -260,7 +268,8 @@ def profile():
                              total_completed=total_completed,
                              location_completed=location_completed,
                              next_achievement=next_achievement,
-                             location_next_completed=location_next_completed)
+                             location_next_completed=location_next_completed,
+                             completed_achievements=completed_achievements)
         
     except Exception as e:
         print(f"Database error: {e}")

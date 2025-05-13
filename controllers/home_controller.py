@@ -84,6 +84,7 @@ def home():
                             books=serializable_books,
                             user_progress=user_progress,
                             last_reading=last_reading,
+                            last_tag=last_tag,
                             closest_book=closest_book)
     else:
         # User is not logged in, redirect to login page
@@ -301,7 +302,8 @@ def mark_chapter_complete():
                 UPDATE user_books 
                 SET {book_column} = %s, 
                     last_tag = %s,
-                    total_completed = %s
+                    total_completed = %s,
+                    last_time = NOW()
                 WHERE account = %s
             """, (new_status, new_last_tag, current_total, session['user_account']))
             

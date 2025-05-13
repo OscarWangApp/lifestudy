@@ -31,7 +31,7 @@
                                 <i class="bi bi-check-circle text-success me-2"></i>
                                 <span class="text-muted">上次讀到</span>
                                 {% if last_reading %}
-                                    <span class="ms-2">{{ last_reading }}</span>
+                                    <a href="javascript:void(0)" class="ms-2 text-decoration-none" onclick="openLastReading('{{ last_tag|default('') }}')">{{ last_reading }}</a>
                                 {% else %}
                                     <span class="ms-2">尚未開始閱讀</span>
                                 {% endif %}
@@ -427,6 +427,15 @@
                         }
                         // 更新進度
                         updateProgress();
+                        
+                        // 更新上次讀到連結
+                        const lastTag = `${bookCode.toLowerCase()}-${chapterNumber}`;
+                        const lastReadingLink = document.querySelector('.study-stats .d-flex:last-child a');
+                        if (lastReadingLink) {
+                            const bookName = document.getElementById('bookSelector').options[document.getElementById('bookSelector').selectedIndex].text;
+                            lastReadingLink.textContent = `${bookName} 第${chapterNumber}章`;
+                            lastReadingLink.onclick = () => openLastReading(lastTag);
+                        }
                     }
                 })
                 .catch(error => {
@@ -529,6 +538,75 @@
                                 lastReadingText.textContent = '尚未開始閱讀';
                             }
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            // 打開上次閱讀的章節
+            function openLastReading(lastTag) {
+                console.log('openLastReading called with:', lastTag);
+                if (!lastTag) {
+                    console.log('No lastTag provided');
+                    return;
+                }
+                
+                const [bookCode, chapter] = lastTag.split('-');
+                console.log('Parsed bookCode:', bookCode, 'chapter:', chapter);
+                if (!bookCode || !chapter) {
+                    console.log('Invalid bookCode or chapter');
+                    return;
+                }
+                
+                // 設置書籍選擇器
+                const bookSelector = document.getElementById('bookSelector');
+                console.log('Setting bookSelector value to:', bookCode);
+                
+                // 檢查所有選項的值
+                console.log('Available options:', Array.from(bookSelector.options).map(opt => opt.value));
+                
+                // 確保選項存在（不區分大小寫）
+                const option = Array.from(bookSelector.options).find(opt => 
+                    opt.value.toLowerCase() === bookCode.toLowerCase()
+                );
+                if (option) {
+                    bookSelector.value = option.value;
+                } else {
+                    console.error('Book option not found:', bookCode);
+                    return;
+                }
+                
+                // 直接獲取章節數據
+                fetch(`/get_chapters/${bookCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+                        
+                        // 清空並重新填充章節按鈕
+                        const chapterButtons = document.getElementById('chapterButtons');
+                        chapterButtons.innerHTML = '';
+                        
+                        data.chapters.forEach(chapterData => {
+                            const button = document.createElement('button');
+                            button.className = 'chapter-btn';
+                            button.textContent = chapterData.chapter_number;
+                            button.dataset.chapter = chapterData.chapter_number;
+                            button.onclick = () => loadChapter(bookCode, chapterData.chapter_number);
+                            
+                            if (chapterData.completed) {
+                                button.classList.add('completed');
+                                button.innerHTML = `<i class="bi bi-check"></i>`;
+                            }
+                            
+                            chapterButtons.appendChild(button);
+                        });
+                        
+                        // 滾動到選擇器區域
+                        document.getElementById('selectionSection').scrollIntoView({ behavior: 'smooth' });
                     })
                     .catch(error => {
                         console.error('Error:', error);

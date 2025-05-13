@@ -20,6 +20,10 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">登入</button>
         </form>
+        <div class="text-center mt-3">
+            <p class="mb-0">還沒有帳號？</p>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success mt-2">註冊新帳號</a>
+        </div>
     </div>
 </div>
 {% endblock %}

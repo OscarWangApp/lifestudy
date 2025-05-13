@@ -3,7 +3,7 @@ from controllers.home_controller import home_bp
 from controllers.auth_controller import auth_bp
 from controllers.user_controller import user_bp
 from config import Config
-from models.database import init_achievement_info, init_total_completed_column, update_user_info_structure
+from models.database import init_achievement_info, init_total_completed_column, update_user_info_structure, init_last_time_column
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -18,6 +18,7 @@ app.register_blueprint(user_bp, url_prefix='/user')
 with app.app_context():
     init_achievement_info()
     init_total_completed_column()
+    init_last_time_column()
     update_user_info_structure()
 
 if __name__ == '__main__':

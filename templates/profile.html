@@ -117,7 +117,13 @@
 
                     <!-- Next Achievement -->
                     <div class="mb-4">
-                        <h5 class="card-title">下一個成就</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">下一個成就</h5>
+                            <div class="achievement-counter bg-warning bg-opacity-10 px-3 py-2 rounded-pill">
+                                <i class="bi bi-trophy-fill text-warning"></i>
+                                <span class="ms-2 fw-bold text-warning">已完成 {{ completed_achievements }} 個成就</span>
+                            </div>
+                        </div>
                         {% if next_achievement %}
                         <div class="achievement-card p-3 bg-light rounded">
                             <div class="d-flex align-items-center mb-3">

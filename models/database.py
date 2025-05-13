@@ -217,6 +217,28 @@ def init_total_completed_column():
         cursor.close()
         db.close()
 
+def init_last_time_column():
+    """Add last_time column to user_books table if it doesn't exist."""
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Check if column exists
+        cursor.execute("SHOW COLUMNS FROM user_books LIKE 'last_time'")
+        if not cursor.fetchone():
+            # Add last_time column
+            cursor.execute("ALTER TABLE user_books ADD COLUMN last_time DATETIME DEFAULT NULL")
+            db.commit()
+            print("Successfully added last_time column to user_books table")
+        else:
+            print("last_time column already exists")
+    except Exception as e:
+        print(f"Error adding last_time column: {e}")
+        db.rollback()
+    finally:
+        cursor.close()
+        db.close()
+
 def update_user_info_structure():
     """Update the user_info table structure to include new fields."""
     db = get_db()

@@ -47,7 +47,9 @@
 
             <div class="mb-3">
                 <label for="birth_year" class="form-label">出生年</label>
-                <input type="number" class="form-control" id="birth_year" name="birth_year" required>
+                <select class="form-select" id="birth_year" name="birth_year" required>
+                    <option value="">選擇出生年</option>
+                </select>
             </div>
 
             <button type="submit" class="btn btn-success w-100">註冊</button>
@@ -128,7 +130,23 @@
     }
 
     // Populate city dropdown on page load
-    document.addEventListener("DOMContentLoaded", populateCities);
+    document.addEventListener("DOMContentLoaded", function() {
+        populateCities();
+        populateBirthYears();
+    });
+
+    function populateBirthYears() {
+        const birthYearSelect = document.getElementById("birth_year");
+        const currentYear = new Date().getFullYear();
+        const startYear = currentYear - 80;
+
+        for (let year = currentYear; year >= startYear; year--) {
+            const option = document.createElement("option");
+            option.value = year;
+            option.textContent = year;
+            birthYearSelect.appendChild(option);
+        }
+    }
 
     //check account at first
     function checkAccountUnique() {
