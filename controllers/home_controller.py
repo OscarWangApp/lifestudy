@@ -49,7 +49,7 @@ def home():
             # Find the book name from books_info
             for book in serializable_books:
                 if book['code'].lower() == book_code:
-                    last_reading = f"{book['name']} 第{chapter}章"
+                    last_reading = f"{book['name']} 第{chapter}篇"
                     break
         
         # Calculate progress for each book
@@ -396,7 +396,7 @@ def get_user_progress_ajax():
             # Find the book name from books_info
             for book in books_info:
                 if book['code'].lower() == book_code:
-                    last_reading = f"{book['name']} 第{chapter}章"
+                    last_reading = f"{book['name']} 第{chapter}篇"
                     break
         
         # Calculate progress for each book
@@ -433,4 +433,55 @@ def get_user_progress_ajax():
         })
     except Exception as e:
         print(f"Error getting user progress: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@home_bp.route('/unmark_chapter_complete', methods=['POST'])
+def unmark_chapter_complete():
+    if not session.get('user_account'):
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    book_code = data.get('book_code')
+    chapter = data.get('chapter_number')
+
+    if not all([book_code, chapter]):
+        return jsonify({'error': 'Missing parameters'}), 400
+
+    try:
+        db = get_db()
+        cursor = db.cursor()
+
+        cursor.execute("BEGIN")
+
+        book_column = book_code.lower()
+        cursor.execute(f"SELECT {book_column}, total_completed FROM user_books WHERE account = %s", (session['user_account'],))
+        result = cursor.fetchone()
+
+        if not result:
+            return jsonify({'error': 'User reading record not found'}), 404
+
+        chapter_index = int(chapter) - 1
+        current_status = list(result[0])
+        current_total = result[1] or 0
+
+        if chapter_index < len(current_status):
+            if current_status[chapter_index] == '1':
+                current_total = max(0, current_total - 1)
+            current_status[chapter_index] = '0'
+            new_status = ''.join(current_status)
+
+            cursor.execute(f"""
+                UPDATE user_books 
+                SET {book_column} = %s, 
+                    total_completed = %s,
+                    last_time = NOW()
+                WHERE account = %s
+            """, (new_status, current_total, session['user_account']))
+
+            db.commit()
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Invalid chapter number'}), 400
+    except Exception as e:
+        db.rollback()
         return jsonify({'error': str(e)}), 500

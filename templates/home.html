@@ -29,7 +29,7 @@
                             </div>
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-check-circle text-success me-2"></i>
-                                <span class="text-muted">上次讀到</span>
+                                <span class="text-muted">上一次讀到</span>
                                 {% if last_reading %}
                                     <a href="javascript:void(0)" class="ms-2 text-decoration-none" onclick="openLastReading('{{ last_tag|default('') }}')">{{ last_reading }}</a>
                                 {% else %}
@@ -43,7 +43,7 @@
                     <div class="col-md-4 border-end">
                         <div class="text-center mb-3">
                             <h5 class="mb-1">整體進度</h5>
-                            <p class="text-muted small">您的聖經學習之旅</p>
+                            <p class="text-muted small">您的生命讀經學習之旅</p>
                         </div>
                         <div class="progress-circle mx-auto" data-progress="{{ user_progress.total_completed }}" data-total="1984">
                             <svg class="progress-circle-svg" viewBox="0 0 100 100">
@@ -52,7 +52,7 @@
                             </svg>
                             <div class="progress-circle-text">
                                 <span class="progress-circle-number">{{ user_progress.total_completed }}</span>
-                                <span class="progress-circle-label">共 1984 章</span>
+                                <span class="progress-circle-label">共 1984 篇</span>
                             </div>
                         </div>
                         <div class="text-center mt-3">
@@ -107,7 +107,7 @@
                     <div class="card-body">
                         <h5 class="card-title d-flex align-items-center">
                             <i class="bi bi-book me-2"></i>
-                            選擇要學習的書卷
+                            選擇要閱讀的書卷
                         </h5>
                         <select id="bookSelector" class="form-select" onchange="handleBookSelection()">
                             <option value="">選擇書卷...</option>
@@ -120,7 +120,7 @@
                     <div class="card-body">
                         <h5 class="card-title d-flex align-items-center">
                             <i class="bi bi-list-ol me-2"></i>
-                            章節
+                            篇
                         </h5>
                         <div id="chapterButtons" class="d-flex flex-wrap gap-2">
                             <!-- Chapter buttons will be dynamically added here -->
@@ -302,39 +302,24 @@
             function handleBookSelection() {
                 const bookCode = document.getElementById('bookSelector').value;
                 const chapterButtons = document.getElementById('chapterButtons');
-                
-                // 清空章節按鈕
                 chapterButtons.innerHTML = '';
-                
-                if (!bookCode) {
-                    return;
-                }
-                
+                if (!bookCode) return;
                 fetch(`/get_chapters/${bookCode}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.error) {
                             console.error('Error:', data.error);
                             return;
                         }
-                        
                         data.chapters.forEach(chapter => {
                             const button = document.createElement('button');
                             button.className = 'chapter-btn';
                             button.textContent = chapter.chapter_number;
                             button.dataset.chapter = chapter.chapter_number;
                             button.onclick = () => loadChapter(bookCode, chapter.chapter_number);
-                            
                             if (chapter.completed) {
                                 button.classList.add('completed');
-                                button.innerHTML = `<i class="bi bi-check"></i>`;
                             }
-                            
                             chapterButtons.appendChild(button);
                         });
                     })
@@ -350,39 +335,49 @@
                     console.error('Invalid book code or chapter number');
                     return;
                 }
-                
                 fetch(`/get_chapter_content/${bookCode}/${chapterNumber}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.error) {
                             console.error('Error:', data.error);
                             return;
                         }
-
-                        document.getElementById('contentTitle').textContent = data.title;
+                        // 顯示書名與第N篇
+                        document.getElementById('contentTitle').textContent = `${data.title.replace(/第\d+章/, '')}第${chapterNumber}篇`;
                         document.getElementById('contentArea').innerHTML = data.content;
-                        
-                        // 隱藏歡迎區塊和選擇區塊，顯示內容區塊
                         document.getElementById('welcomeSection').classList.add('d-none');
                         document.getElementById('selectionSection').classList.add('d-none');
                         document.getElementById('contentSection').classList.remove('d-none');
-                        
                         // 更新完成按鈕狀態
                         const completeButton = document.getElementById('completeButton');
                         completeButton.dataset.bookCode = bookCode;
                         completeButton.dataset.chapterNumber = chapterNumber;
-                        completeButton.disabled = data.completed;
                         completeButton.textContent = data.completed ? '已完成' : '完成';
+                        completeButton.classList.toggle('btn-success', !data.completed);
+                        completeButton.classList.toggle('btn-secondary', data.completed);
+                        completeButton.onclick = () => toggleCompleteButton(bookCode, chapterNumber, data.completed);
                     })
                     .catch(error => {
                         console.error('Error:', error);
                         document.getElementById('contentArea').innerHTML = '<div class="alert alert-danger">載入內容時發生錯誤</div>';
                     });
+            }
+
+            function toggleCompleteButton(bookCode, chapterNumber, isCompleted) {
+                const url = isCompleted ? '/unmark_chapter_complete' : '/mark_chapter_complete';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ book_code: bookCode, chapter_number: chapterNumber })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadChapter(bookCode, chapterNumber);
+                        handleBookSelection();
+                        updateProgress();
+                    }
+                });
             }
 
             // 返回書卷選擇
@@ -423,7 +418,7 @@
                         const chapterBtn = document.querySelector(`.chapter-btn[data-chapter="${chapterNumber}"]`);
                         if (chapterBtn) {
                             chapterBtn.classList.add('completed');
-                            chapterBtn.innerHTML = `<i class="bi bi-check"></i>`;
+                            chapterBtn.textContent = chapterNumber;
                         }
                         // 更新進度
                         updateProgress();
@@ -433,7 +428,7 @@
                         const lastReadingLink = document.querySelector('.study-stats .d-flex:last-child a');
                         if (lastReadingLink) {
                             const bookName = document.getElementById('bookSelector').options[document.getElementById('bookSelector').selectedIndex].text;
-                            lastReadingLink.textContent = `${bookName} 第${chapterNumber}章`;
+                            lastReadingLink.textContent = `${bookName} 第${chapterNumber}篇`;
                             lastReadingLink.onclick = () => openLastReading(lastTag);
                         }
                     }
@@ -531,7 +526,7 @@
                         const lastReadingText = document.querySelector('.study-stats .d-flex:last-child .ms-2');
                         if (data.last_reading) {
                             if (lastReadingText) {
-                                lastReadingText.textContent = data.last_reading;
+                                lastReadingText.textContent = data.last_reading.replace('章', '篇');
                             }
                         } else {
                             if (lastReadingText) {
@@ -599,7 +594,7 @@
                             
                             if (chapterData.completed) {
                                 button.classList.add('completed');
-                                button.innerHTML = `<i class="bi bi-check"></i>`;
+                                button.textContent = chapterData.chapter_number;
                             }
                             
                             chapterButtons.appendChild(button);

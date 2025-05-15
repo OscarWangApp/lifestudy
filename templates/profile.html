@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="row">
         <!-- Profile Settings Card -->
-        <div class="col-md-7">
+        <div class="col-md-5">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">個人資料設定</h4>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Statistics Card -->
-        <div class="col-md-5">
+        <div class="col-md-7">
             <div class="card shadow mb-4">
                 <div class="card-header bg-info text-white">
                     <h4 class="mb-0">閱讀統計</h4>
@@ -102,7 +102,7 @@
                             </svg>
                             <div class="progress-circle-text">
                                 <span class="progress-circle-number">{{ total_completed }}</span>
-                                <span class="progress-circle-label">共 1984 章</span>
+                                <span class="progress-circle-label">共 1984 篇</span>
                             </div>
                         </div>
                         <div class="text-center">
@@ -110,7 +110,7 @@
                                 完成度 {{ (total_completed / 1984 * 100)|round }}%
                             </span>
                             <p class="text-muted mt-2">
-                                已有 {{ location_completed }} 位使用者完成所有章節
+                                已有 {{ location_completed }} 位使用者完成1984篇
                             </p>
                         </div>
                     </div>
@@ -119,10 +119,6 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="card-title mb-0">下一個成就</h5>
-                            <div class="achievement-counter bg-warning bg-opacity-10 px-3 py-2 rounded-pill">
-                                <i class="bi bi-trophy-fill text-warning"></i>
-                                <span class="ms-2 fw-bold text-warning">已完成 {{ completed_achievements }} 個成就</span>
-                            </div>
                         </div>
                         {% if next_achievement %}
                         <div class="achievement-card p-3 bg-light rounded">
@@ -133,6 +129,7 @@
                             {% set next_target = next_achievement.condition.split('=')[1].strip() %}
                             {% set progress_percentage = (total_completed / next_target|int * 100)|round %}
                             <div class="progress" style="height: 8px;">
+                                
                                 <div class="progress-bar bg-warning" role="progressbar" 
                                      style="width: {{ progress_percentage }}%" 
                                      aria-valuenow="{{ progress_percentage }}" 
@@ -178,6 +175,19 @@
                     </div>
                 </div>
             </div>
+            <!-- Completed Achievements Block 暫時隱藏
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">已完成成就數</h5>
+                </div>
+                <div class="card-body">
+                    <div class="achievement-counter bg-warning bg-opacity-10 px-3 py-2 rounded-pill">
+                        <i class="bi bi-trophy-fill text-warning"></i>
+                        <span class="ms-2 fw-bold text-warning">已完成 {{ completed_achievements }} 個成就</span>
+                    </div>
+                </div>
+            </div>
+            -->
         </div>
     </div>
 </div>
