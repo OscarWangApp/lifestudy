@@ -193,7 +193,9 @@
 
 <script>
     var locations = JSON.parse('{{ locations | tojson | safe }}');
-    var currentLocation = '{{ user_info.location or "" }}'.split('-');
+    var currentCity = '{{ current_city }}';
+    var currentHall = '{{ current_hall }}';
+    var currentDistrict = '{{ current_district }}';
 
     function populateCities() {
         var citySelector = document.getElementById("city");
@@ -205,13 +207,13 @@
             var option = document.createElement("option");
             option.value = city;
             option.textContent = city;
-            if (currentLocation[0] === city) {
+            if (city === currentCity) {
                 option.selected = true;
             }
             citySelector.appendChild(option);
         });
 
-        if (currentLocation[0]) {
+        if (currentCity) {
             updateHalls();
         }
     }
@@ -238,13 +240,13 @@
             var option = document.createElement("option");
             option.value = hall;
             option.textContent = hall;
-            if (currentLocation[1] === hall) {
+            if (hall === currentHall) {
                 option.selected = true;
             }
             hallSelector.appendChild(option);
         });
 
-        if (currentLocation[1]) {
+        if (currentHall) {
             updateDistricts();
         }
     }
@@ -271,7 +273,7 @@
             var option = document.createElement("option");
             option.value = district;
             option.textContent = district;
-            if (currentLocation[2] === district) {
+            if (district === currentDistrict) {
                 option.selected = true;
             }
             districtSelector.appendChild(option);

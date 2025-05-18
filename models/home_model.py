@@ -1,6 +1,7 @@
 import os
 import re
 from models.database import get_db
+from flask import current_app
 
 def get_book_content(book_sql, book_code, chapter):
     """
@@ -31,7 +32,9 @@ def get_book_content(book_sql, book_code, chapter):
         file_name = f"{book_code}{formatted_chapter}"
     
     # 構建檔案路徑
-    file_path = os.path.join('static', 'books', f"{formatted_sql}{book_code}", f"{book_code}{formatted_chapter}")
+    # file_path = os.path.join('static', 'books', f"{formatted_sql}{book_code}", f"{book_code}{formatted_chapter}")
+    folder_name = f"{formatted_sql}{book_code.lower()}"
+    file_path = os.path.join(current_app.root_path, 'static', 'books', folder_name, file_name.lower())
     
     # 檢查檔案是否存在
     if not os.path.exists(file_path):

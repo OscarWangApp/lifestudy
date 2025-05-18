@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models.database import get_db
 from models.user_model import get_locations, get_user_by_account, add_user
 from models.books_model import get_books_info
-import sqlite3
+import mysql.connector
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -51,11 +51,13 @@ def register():
             session['user_account'] = account
             session['user_auth'] = auth  # 設置新註冊用戶的 auth session
             return redirect(url_for('home.home'))
-        except sqlite3.IntegrityError:
-            # 處理帳號已存在的情況
-            return render_template('register.html', error='Account already taken', locations=locations)
+        except mysql.connector.Error as e:
+            if e.errno == 1062:  # Duplicate entry error
+                return render_template('register.html', error='Account already taken', locations=locations)
+            else:
+                print(f"Registration error: {e}")
+                return render_template('register.html', error='Registration failed. Please try again.', locations=locations)
         except Exception as e:
-            # 處理其他錯誤
             print(f"Registration error: {e}")
             return render_template('register.html', error='Registration failed. Please try again.', locations=locations)
         
@@ -197,6 +199,12 @@ def profile():
         cursor.execute('SELECT account, location, birth_year FROM user_info WHERE account = %s', (session['user_account'],))
         user_info = cursor.fetchone()
         
+        # Split location into components
+        current_location = user_info['location'].split('-') if user_info['location'] else ['', '', '']
+        current_city = current_location[0] if len(current_location) > 0 else ''
+        current_hall = current_location[1] if len(current_location) > 1 else ''
+        current_district = current_location[2] if len(current_location) > 2 else ''
+        
         # Get locations for the dropdowns
         locations = get_locations()
 
@@ -226,16 +234,6 @@ def profile():
         completed_achievements = cursor.fetchone()['completed_count']
 
         # Get next achievement
-        print("Debug - SQL Query - Total Completed:", total_completed)
-        
-        # First, let's see what's in the achievement_info table
-        cursor.execute('SELECT * FROM achievement_info')
-        all_achievements = cursor.fetchall()
-        print("Debug - All Achievements in DB:")
-        for achievement in all_achievements:
-            print(f"Achievement: {achievement}")
-        
-        # Now try a simpler query
         cursor.execute('''
             SELECT code, name, `condition`, encouragement
             FROM achievement_info
@@ -245,14 +243,8 @@ def profile():
         ''', (total_completed,))
         next_achievement = cursor.fetchone()
         
-        print("Debug - Total Completed:", total_completed)
-        print("Debug - Next Achievement:", next_achievement)
         if next_achievement:
-            print("Debug - Achievement Condition:", next_achievement['condition'])
-            print("Debug - Achievement Name:", next_achievement['name'])
-            # Extract the target number from the condition
             next_target = int(next_achievement['condition'].split('=')[1].strip())
-            print("Debug - Next Target:", next_target)
             cursor.execute('''
                 SELECT COUNT(*) as next_completed_count
                 FROM user_books ub
@@ -265,6 +257,9 @@ def profile():
         return render_template('profile.html', 
                              user_info=user_info, 
                              locations=locations,
+                             current_city=current_city,
+                             current_hall=current_hall,
+                             current_district=current_district,
                              total_completed=total_completed,
                              location_completed=location_completed,
                              next_achievement=next_achievement,
