@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}登入{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="card p-4" style="width: 25rem;">
+        <h2 class="text-center">登入</h2>
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <div class="mb-3">
+                <label for="account" class="form-label">帳號</label>
+                <input type="text" class="form-control" id="account" name="account" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">密碼</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">登入</button>
+        </form>
+        <div class="text-center mt-3">
+            <p class="mb-0">還沒有帳號？</p>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success mt-2">註冊新帳號</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

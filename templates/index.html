@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}首頁{% endblock %}
+{% block content %}
+<h1>歡迎來到文章頁面</h1>
+{% for article in articles %}
+    <div>
+        <h2>{{ article.title }}</h2>
+        <p>{{ article.content }}</p>
+    </div>
+{% endfor %}
+{% endblock %}

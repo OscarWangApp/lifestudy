@@ -1,0 +1,1151 @@
+{% extends 'base.html' %}
+{% block title %}生命讀經平台{% endblock %}
+{% block content %}
+    {% if user_account %}
+        <!-- Combined Welcome and Progress Section -->
+        <div id="welcomeSection" class="card mb-4 border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <!-- Welcome Section -->
+                    <div class="col-md-4 border-end">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="welcome-icon me-3">
+                                <i class="bi bi-person-circle fs-1 text-primary"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">歡迎，{{ user_account }}！</h4>
+                                <p class="text-muted mb-0">開始今天的學習之旅</p>
+                            </div>
+                        </div>
+                        <div class="study-stats mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-book text-primary me-2"></i>
+                                <span class="text-muted">快完成了</span>
+                                {% if closest_book %}
+                                    <span class="ms-2">{{ closest_book.name }} ({{ closest_book.completed }}/{{ closest_book.total }})</span>
+                                {% else %}
+                                    <span class="ms-2">尚未開始閱讀</span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span class="text-muted">上一次讀到</span>
+                                {% if last_reading %}
+                                    <a href="javascript:void(0)" class="ms-2 text-decoration-none" onclick="openLastReading('{{ last_tag|default('') }}')">{{ last_reading }}</a>
+                                {% else %}
+                                    <span class="ms-2">尚未開始閱讀</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="book-selector mt-4">
+                            <h5 class="d-flex align-items-center mb-3">
+                                <i class="bi bi-book me-2"></i>
+                                選擇要閱讀的書卷
+                            </h5>
+                            <select id="bookSelector" class="form-select" onchange="handleBookSelection()">
+                                <option value="">選擇書卷...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Next Achievement Section -->
+                    <div class="col-md-4 border-end">
+                        <div class="text-center mb-3">
+                            <h5 class="mb-1">下一個成就</h5>
+                            <p class="text-muted small">繼續努力解鎖獎勵</p>
+                        </div>
+                        {% if user_progress.next_achievement %}
+                            <div class="achievement-card p-3 bg-light rounded">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-trophy-fill text-warning fs-4 me-2"></i>
+                                    <h6 class="mb-0">{{ user_progress.next_achievement.name }}</h6>
+                                </div>
+                                {% set next_target = user_progress.next_achievement.condition.split('=')[1].strip() %}
+                                {% set progress_percentage = (user_progress.total_completed / next_target|int * 100)|round %}
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" role="progressbar" 
+                                         style="width: {{ progress_percentage }}%" 
+                                         aria-valuenow="{{ progress_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted">進度</small>
+                                    <small class="fw-bold">{{ user_progress.total_completed }}/{{ next_target }}</small>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="bi bi-emoji-smile fs-1"></i>
+                                <p class="mt-2">您已完成所有成就！</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Overall Progress Section -->
+                    <div class="col-md-4">
+                        <div class="text-center mb-3">
+                            <h5 class="mb-1">整體進度</h5>
+                            <p class="text-muted small">您的生命讀經學習之旅</p>
+                        </div>
+                        <div class="progress-circle mx-auto" data-progress="{{ user_progress.total_completed }}" data-total="1984">
+                            <svg class="progress-circle-svg" viewBox="0 0 100 100">
+                                <circle class="progress-circle-bg" cx="50" cy="50" r="45"/>
+                                <circle class="progress-circle-fill" cx="50" cy="50" r="45"/>
+                            </svg>
+                            <div class="progress-circle-text">
+                                <span class="progress-circle-number">{{ user_progress.total_completed }}</span>
+                                <span class="progress-circle-label">共 1984 篇</span>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <span class="badge bg-primary rounded-pill">
+                                完成度 {{ (user_progress.total_completed / 1984 * 100)|round }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chapters Section -->
+        <div id="selectionSection" class="card border-0 shadow-sm d-none">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0" id="selectedBookTitle">篇</h5>
+                    <button class="btn btn-outline-secondary" onclick="showWelcomeSection()">
+                        返回
+                    </button>
+                </div>
+                <div id="chapterButtons" class="d-flex flex-wrap gap-2">
+                    <!-- Chapter buttons will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="contentSection" class="mt-4 d-none">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title" id="contentTitle">書卷章節</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" onclick="adjustFontSize('increase')" title="放大字體">
+                                <i class="bi bi-zoom-in"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="adjustFontSize('decrease')" title="縮小字體">
+                                <i class="bi bi-zoom-out"></i>
+                            </button>
+                            <button id="playButton" class="btn btn-primary" onclick="togglePlay()" title="播放">
+                                <i class="bi bi-play-fill"></i>
+                            </button>
+                            <button id="settingsButton" class="btn btn-outline-secondary" onclick="toggleSettings()" title="設定">
+                                <i class="bi bi-gear-fill"></i>
+                            </button>
+                            <button id="completeButton" class="btn btn-success" onclick="markChapterComplete()">
+                                完成
+                            </button>
+                            <button id="backButton" class="btn btn-outline-secondary" onclick="showSelectorSection()">
+                                返回
+                            </button>
+                        </div>
+                    </div>
+                    <div id="contentArea" class="content-area">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定面板 -->
+        <div id="settingsPanel" class="settings-panel" style="display: none;">
+            <div class="settings-header">
+                <h6 class="mb-0">播放設定</h6>
+                <button class="btn-close" onclick="toggleSettings()"></button>
+            </div>
+            <div class="settings-content">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>播放速度</span>
+                        <span id="speedValue" class="value-display">1x</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn-control" onclick="changePlaybackSpeed('decrease')">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <button class="btn-control" onclick="changePlaybackSpeed('increase')">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>音量</span>
+                        <span id="volumeValue" class="value-display">100%</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn-control" onclick="changeVolume('decrease')">
+                            <i class="bi bi-volume-down"></i>
+                        </button>
+                        <button class="btn-control" onclick="changeVolume('increase')">
+                            <i class="bi bi-volume-up"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>進度</span>
+                        <span id="progressValue" class="value-display">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <input type="range" class="progress-slider" id="progress" min="0" max="100" value="0" onchange="seekAudio()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 音頻播放器 -->
+        <audio id="audioPlayer" style="display: none;"></audio>
+
+        <style>
+            /* Progress Circle Styles */
+            .progress-circle {
+                position: relative;
+                width: 150px;
+                height: 150px;
+                margin: 0 auto;
+            }
+            
+            .progress-circle-svg {
+                transform: rotate(-90deg);
+            }
+            
+            .progress-circle-bg {
+                fill: none;
+                stroke: #e9ecef;
+                stroke-width: 8;
+            }
+            
+            .progress-circle-fill {
+                fill: none;
+                stroke: #0d6efd;
+                stroke-width: 8;
+                stroke-dasharray: 283;
+                stroke-dashoffset: 283;
+                transition: stroke-dashoffset 1s ease-in-out;
+            }
+            
+            .progress-circle-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+            }
+            
+            .progress-circle-number {
+                font-size: 28px;
+                font-weight: bold;
+                color: #0d6efd;
+                display: block;
+                line-height: 1.2;
+            }
+            
+            .progress-circle-label {
+                font-size: 14px;
+                color: #6c757d;
+                display: block;
+            }
+
+            .achievement-card {
+                background-color: #fff8e1;
+                border: 1px solid #ffe0b2;
+            }
+
+            .welcome-icon {
+                color: #0d6efd;
+            }
+
+            .study-stats {
+                padding: 1rem;
+                background-color: #f8f9fa;
+                border-radius: 0.5rem;
+            }
+
+            .study-stats i {
+                font-size: 1.2rem;
+            }
+
+            .card {
+                transition: transform 0.2s ease-in-out;
+            }
+
+            .card:hover {
+                transform: translateY(-2px);
+            }
+
+            .chapter-btn {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                background-color: white;
+                border: 1px solid #dee2e6;
+                color: #495057;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                position: relative;
+            }
+            
+            .chapter-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border-color: #0d6efd;
+            }
+
+            .chapter-btn.completed {
+                background-color: #198754;
+                color: white;
+                border-color: #198754;
+            }
+
+            .content-area {
+                max-height: 70vh;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                font-family: "Microsoft YaHei", "SimSun", serif;
+                line-height: 1.8;
+                padding: 1rem;
+                background-color: #f8f9fa;
+                border-radius: 0.5rem;
+            }
+
+            .settings-panel {
+                position: fixed;
+                bottom: 80px;
+                right: 20px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                z-index: 1000;
+                width: 320px;
+                overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.1);
+            }
+
+            .settings-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                background: #f8f9fa;
+                border-bottom: 1px solid rgba(0,0,0,0.1);
+            }
+
+            .settings-header h6 {
+                color: #495057;
+                font-weight: 600;
+            }
+
+            .settings-content {
+                padding: 20px;
+            }
+
+            .control-group {
+                margin-bottom: 20px;
+            }
+
+            .control-group:last-child {
+                margin-bottom: 0;
+            }
+
+            .control-label {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                color: #495057;
+                font-size: 0.9rem;
+            }
+
+            .value-display {
+                background: #e9ecef;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.8rem;
+                color: #495057;
+                min-width: 45px;
+                text-align: center;
+            }
+
+            .control-buttons {
+                display: flex;
+                gap: 8px;
+            }
+
+            .btn-control {
+                flex: 1;
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                background: white;
+                border-radius: 8px;
+                color: #495057;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-control:hover {
+                background: #f8f9fa;
+                border-color: #0d6efd;
+                color: #0d6efd;
+            }
+
+            .progress-container {
+                padding: 8px 0;
+            }
+
+            .progress-slider {
+                width: 100%;
+                height: 4px;
+                -webkit-appearance: none;
+                background: #e9ecef;
+                border-radius: 2px;
+                outline: none;
+            }
+
+            .progress-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 16px;
+                height: 16px;
+                background: #0d6efd;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .progress-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.2);
+            }
+
+            .progress-slider::-moz-range-thumb {
+                width: 16px;
+                height: 16px;
+                background: #0d6efd;
+                border-radius: 50%;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s ease;
+            }
+
+            .progress-slider::-moz-range-thumb:hover {
+                transform: scale(1.2);
+            }
+
+            .btn-close {
+                padding: 4px;
+                opacity: 0.5;
+                transition: opacity 0.2s ease;
+            }
+
+            .btn-close:hover {
+                opacity: 1;
+            }
+        </style>
+
+        <script>
+            // 常量定義
+            const CONSTANTS = {
+                FONT_SIZE: {
+                    MIN: 12,
+                    MAX: 24,
+                    STEP: 2
+                },
+                PLAYBACK_SPEED: {
+                    MIN: 0.5,
+                    MAX: 2,
+                    STEP: 0.25
+                },
+                VOLUME: {
+                    MIN: 0,
+                    MAX: 1,
+                    STEP: 0.1
+                }
+            };
+
+            // 緩存 DOM 元素
+            const DOM = {
+                audioPlayer: document.getElementById('audioPlayer'),
+                playButton: document.getElementById('playButton'),
+                settingsButton: document.getElementById('settingsButton'),
+                settingsPanel: document.getElementById('settingsPanel'),
+                contentArea: document.getElementById('contentArea'),
+                progress: document.getElementById('progress'),
+                progressValue: document.getElementById('progressValue'),
+                speedValue: document.getElementById('speedValue'),
+                volumeValue: document.getElementById('volumeValue'),
+                bookSelector: document.getElementById('bookSelector'),
+                chapterButtons: document.getElementById('chapterButtons'),
+                contentTitle: document.getElementById('contentTitle'),
+                completeButton: document.getElementById('completeButton')
+            };
+
+            // 防抖函數
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // 統一錯誤處理
+            function handleError(error, message = '操作失敗') {
+                console.error(error);
+                // 可以添加一個統一的錯誤提示 UI
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                errorDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(errorDiv);
+                setTimeout(() => errorDiv.remove(), 5000);
+            }
+
+            // 初始化
+            document.addEventListener('DOMContentLoaded', function() {
+                const books = {{ books|tojson|safe }};
+                initializeBookSelector(books);
+                initializeProgressCircle();
+                initializeEventListeners();
+            });
+
+            // 初始化書籍選擇器
+            function initializeBookSelector(books) {
+                DOM.bookSelector.innerHTML = '<option value="">選擇書卷...</option>';
+                books.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book.code;
+                    option.textContent = book.name;
+                    DOM.bookSelector.appendChild(option);
+                });
+            }
+
+            // 初始化進度圓圈
+            function initializeProgressCircle() {
+                const progressCircle = document.querySelector('.progress-circle');
+                if (progressCircle) {
+                    const progress = progressCircle.dataset.progress;
+                    const total = progressCircle.dataset.total;
+                    const percentage = (progress / total) * 100;
+                    const dashOffset = 283 - (283 * percentage / 100);
+                    const fillCircle = progressCircle.querySelector('.progress-circle-fill');
+                    fillCircle.style.strokeDashoffset = dashOffset;
+                }
+            }
+
+            // 初始化事件監聽器
+            function initializeEventListeners() {
+                // 點擊頁面其他區域時關閉設定面板
+                document.addEventListener('click', function(event) {
+                    if (!DOM.settingsButton.contains(event.target) && !DOM.settingsPanel.contains(event.target)) {
+                        DOM.settingsPanel.style.display = 'none';
+                    }
+                });
+
+                // 防止點擊設定面板內部時關閉面板
+                DOM.settingsPanel.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
+
+                // 音頻播放結束時重置
+                DOM.audioPlayer.addEventListener('ended', function() {
+                    isPlaying = false;
+                    DOM.playButton.innerHTML = '<i class="bi bi-play-fill"></i>';
+                    DOM.progress.value = 0;
+                    DOM.progressValue.textContent = '0%';
+                });
+
+                // 更新進度條
+                DOM.audioPlayer.addEventListener('timeupdate', debounce(function() {
+                    const progress = (DOM.audioPlayer.currentTime / DOM.audioPlayer.duration) * 100;
+                    DOM.progress.value = progress;
+                    DOM.progressValue.textContent = Math.round(progress) + '%';
+                }, 100));
+            }
+
+            // 調整字體大小
+            const adjustFontSize = debounce(function(action) {
+                const currentSize = parseInt(window.getComputedStyle(DOM.contentArea).fontSize);
+                let newSize;
+                
+                if (action === 'increase' && currentSize < CONSTANTS.FONT_SIZE.MAX) {
+                    newSize = currentSize + CONSTANTS.FONT_SIZE.STEP;
+                } else if (action === 'decrease' && currentSize > CONSTANTS.FONT_SIZE.MIN) {
+                    newSize = currentSize - CONSTANTS.FONT_SIZE.STEP;
+                } else {
+                    return;
+                }
+                
+                DOM.contentArea.style.fontSize = newSize + 'px';
+                localStorage.setItem('contentFontSize', DOM.contentArea.style.fontSize);
+            }, 100);
+
+            // 改變播放速度
+            function changePlaybackSpeed(action) {
+                const currentSpeed = DOM.audioPlayer.playbackRate;
+                let newSpeed;
+                
+                if (action === 'increase') {
+                    newSpeed = Math.min(currentSpeed + CONSTANTS.PLAYBACK_SPEED.STEP, CONSTANTS.PLAYBACK_SPEED.MAX);
+                } else {
+                    newSpeed = Math.max(currentSpeed - CONSTANTS.PLAYBACK_SPEED.STEP, CONSTANTS.PLAYBACK_SPEED.MIN);
+                }
+                
+                DOM.audioPlayer.playbackRate = newSpeed;
+                DOM.speedValue.textContent = newSpeed.toFixed(2) + 'x';
+            }
+
+            // 改變音量
+            function changeVolume(action) {
+                const currentVolume = DOM.audioPlayer.volume;
+                let newVolume;
+                
+                if (action === 'increase') {
+                    newVolume = Math.min(currentVolume + CONSTANTS.VOLUME.STEP, CONSTANTS.VOLUME.MAX);
+                } else {
+                    newVolume = Math.max(currentVolume - CONSTANTS.VOLUME.STEP, CONSTANTS.VOLUME.MIN);
+                }
+                
+                DOM.audioPlayer.volume = newVolume;
+                DOM.volumeValue.textContent = Math.round(newVolume * 100) + '%';
+            }
+
+            // 跳轉音頻進度
+            const seekAudio = debounce(function() {
+                const progress = DOM.progress.value;
+                const seekTime = (progress / 100) * DOM.audioPlayer.duration;
+                DOM.audioPlayer.currentTime = seekTime;
+                DOM.progressValue.textContent = progress + '%';
+            }, 100);
+
+            // 處理書籍選擇
+            function handleBookSelection() {
+                const bookCode = document.getElementById('bookSelector').value;
+                const chapterButtons = document.getElementById('chapterButtons');
+                const selectedBookTitle = document.getElementById('selectedBookTitle');
+                chapterButtons.innerHTML = '';
+                
+                if (!bookCode) return;
+
+                // 更新選中書卷的標題
+                const selectedOption = document.getElementById('bookSelector').options[document.getElementById('bookSelector').selectedIndex];
+                selectedBookTitle.textContent = selectedOption.text;
+
+                // 隱藏歡迎區塊，顯示章節選擇區塊
+                document.getElementById('welcomeSection').classList.add('d-none');
+                document.getElementById('selectionSection').classList.remove('d-none');
+
+                fetch(`/get_chapters/${bookCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+                        data.chapters.forEach(chapter => {
+                            const button = document.createElement('button');
+                            button.className = 'chapter-btn';
+                            button.textContent = chapter.chapter_number;
+                            button.dataset.chapter = chapter.chapter_number;
+                            button.onclick = () => loadChapter(bookCode, chapter.chapter_number);
+                            if (chapter.completed) {
+                                button.classList.add('completed');
+                            }
+                            chapterButtons.appendChild(button);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        chapterButtons.innerHTML = '<div class="alert alert-danger">載入章節時發生錯誤</div>';
+                    });
+            }
+
+            // 顯示歡迎區塊
+            function showWelcomeSection() {
+                document.getElementById('selectionSection').classList.add('d-none');
+                document.getElementById('welcomeSection').classList.remove('d-none');
+                document.getElementById('bookSelector').value = '';
+            }
+
+            // 載入章節內容
+            function loadChapter(bookCode, chapterNumber) {
+                if (!bookCode || !chapterNumber) {
+                    console.error('Invalid book code or chapter number');
+                    return;
+                }
+
+                // 更新當前書籍和章節信息
+                currentBook = bookCode;
+                currentChapter = chapterNumber;
+                
+                // 重置播放器
+                if (audioPlayer) {
+                    audioPlayer.pause();
+                    audioPlayer.src = '';  // 清空 src
+                    isPlaying = false;
+                    document.getElementById('playButton').innerHTML = '<i class="bi bi-play-fill"></i>';
+                    document.getElementById('progress').value = 0;
+                }
+
+                console.log('Loading chapter:', bookCode, chapterNumber);
+                console.log('Current book set to:', currentBook);
+                console.log('Current chapter set to:', currentChapter);
+
+                // 記錄閱讀位置
+                fetch('/update_last_reading', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_code: bookCode,
+                        chapter_number: chapterNumber
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error updating last reading:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating last reading:', error);
+                });
+
+                // 載入章節內容
+                fetch(`/get_chapter_content/${bookCode}/${chapterNumber}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+                        // 顯示書名與第N篇
+                        document.getElementById('contentTitle').textContent = `${data.title.replace(/第\d+章/, '')}第${chapterNumber}篇`;
+                        document.getElementById('contentArea').innerHTML = data.content;
+                        // 恢復儲存的字體大小
+                        const savedFontSize = localStorage.getItem('contentFontSize');
+                        if (savedFontSize) {
+                            document.getElementById('contentArea').style.fontSize = savedFontSize;
+                        }
+                        document.getElementById('welcomeSection').classList.add('d-none');
+                        document.getElementById('selectionSection').classList.add('d-none');
+                        document.getElementById('contentSection').classList.remove('d-none');
+                        // 更新完成按鈕狀態
+                        const completeButton = document.getElementById('completeButton');
+                        completeButton.dataset.bookCode = bookCode;
+                        completeButton.dataset.chapterNumber = chapterNumber;
+                        completeButton.textContent = data.completed ? '已完成' : '完成';
+                        completeButton.classList.toggle('btn-success', !data.completed);
+                        completeButton.classList.toggle('btn-secondary', data.completed);
+                        completeButton.onclick = () => toggleCompleteButton(bookCode, chapterNumber, data.completed);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('contentArea').innerHTML = '<div class="alert alert-danger">載入內容時發生錯誤</div>';
+                    });
+            }
+
+            function toggleCompleteButton(bookCode, chapterNumber, isCompleted) {
+                const url = isCompleted ? '/unmark_chapter_complete' : '/mark_chapter_complete';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ book_code: bookCode, chapter_number: chapterNumber })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadChapter(bookCode, chapterNumber);
+                        handleBookSelection();
+                        updateProgress();
+                    }
+                });
+            }
+
+            // 返回書卷選擇
+            function showSelectorSection() {
+                // 隱藏內容區塊，顯示歡迎區塊和選擇區塊
+                document.getElementById('contentSection').classList.add('d-none');
+                document.getElementById('welcomeSection').classList.remove('d-none');
+                document.getElementById('selectionSection').classList.add('d-none');
+                document.getElementById('bookSelector').value = '';
+
+                // 更新"上一次讀到"的顯示
+                fetch('/get_user_progress')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+                        // 更新"上一次讀到"的顯示
+                        const lastReadingLink = document.querySelector('.study-stats .d-flex:last-child a');
+                        if (lastReadingLink && data.last_reading) {
+                            lastReadingLink.textContent = data.last_reading;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating last reading:', error);
+                    });
+            }
+
+            // 標記章節完成
+            function markChapterComplete() {
+                const button = document.getElementById('completeButton');
+                const bookCode = button.dataset.bookCode;
+                const chapterNumber = button.dataset.chapterNumber;
+                
+                fetch('/mark_chapter_complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_code: bookCode,
+                        chapter_number: chapterNumber
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+
+                    if (data.success) {
+                        button.disabled = true;
+                        button.textContent = '已完成';
+                        // 更新章節按鈕狀態
+                        const chapterBtn = document.querySelector(`.chapter-btn[data-chapter="${chapterNumber}"]`);
+                        if (chapterBtn) {
+                            chapterBtn.classList.add('completed');
+                            chapterBtn.textContent = chapterNumber;
+                        }
+                        // 更新進度
+                        updateProgress();
+                        
+                        // 更新上次讀到連結
+                        const lastTag = `${bookCode.toLowerCase()}-${chapterNumber}`;
+                        const lastReadingLink = document.querySelector('.study-stats .d-flex:last-child a');
+                        if (lastReadingLink) {
+                            const bookName = document.getElementById('bookSelector').options[document.getElementById('bookSelector').selectedIndex].text;
+                            lastReadingLink.textContent = `${bookName} 第${chapterNumber}篇`;
+                            lastReadingLink.onclick = () => openLastReading(lastTag);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+
+            // 更新進度
+            function updateProgress() {
+                fetch('/get_user_progress')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+
+                        // 更新總進度圓圈
+                        const progressCircle = document.querySelector('.progress-circle');
+                        if (progressCircle) {
+                            const progress = data.total_completed;
+                            const total = 1984;
+                            const percentage = (progress / total) * 100;
+                            const dashOffset = 283 - (283 * percentage / 100);
+                            
+                            const fillCircle = progressCircle.querySelector('.progress-circle-fill');
+                            fillCircle.style.strokeDashoffset = dashOffset;
+                            
+                            // 更新進度數字
+                            const progressNumber = progressCircle.querySelector('.progress-circle-number');
+                            if (progressNumber) {
+                                progressNumber.textContent = progress;
+                            }
+                            
+                            // 更新完成百分比標籤
+                            const progressBadge = document.querySelector('.badge.bg-primary');
+                            if (progressBadge) {
+                                progressBadge.textContent = `完成度 ${Math.round(percentage)}%`;
+                            }
+                        }
+
+                        // 更新下一個成就
+                        const achievementCard = document.querySelector('.achievement-card');
+                        if (data.next_achievement) {
+                            if (achievementCard) {
+                                const nextTarget = data.next_achievement.condition.split('=')[1].trim();
+                                const progressPercentage = (data.total_completed / nextTarget * 100);
+                                
+                                // 更新成就名稱
+                                const achievementName = achievementCard.querySelector('h6');
+                                if (achievementName) {
+                                    achievementName.textContent = data.next_achievement.name;
+                                }
+                                
+                                // 更新進度條
+                                const progressBar = achievementCard.querySelector('.progress-bar');
+                                if (progressBar) {
+                                    progressBar.style.width = `${progressPercentage}%`;
+                                    progressBar.setAttribute('aria-valuenow', progressPercentage);
+                                }
+                                
+                                // 更新進度數字
+                                const progressText = achievementCard.querySelector('.fw-bold');
+                                if (progressText) {
+                                    progressText.textContent = `${data.total_completed}/${nextTarget}`;
+                                }
+                            }
+                        } else {
+                            // 如果沒有下一個成就，顯示完成訊息
+                            if (achievementCard) {
+                                achievementCard.innerHTML = `
+                                    <div class="text-center text-muted">
+                                        <i class="bi bi-emoji-smile fs-1"></i>
+                                        <p class="mt-2">您已完成所有成就！</p>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        // 更新快完成的書
+                        const closestBookText = document.querySelector('.study-stats .d-flex:first-child .ms-2');
+                        if (data.closest_book) {
+                            if (closestBookText) {
+                                closestBookText.textContent = `${data.closest_book.name} (${data.closest_book.completed}/${data.closest_book.total})`;
+                            }
+                        } else {
+                            if (closestBookText) {
+                                closestBookText.textContent = '尚未開始閱讀';
+                            }
+                        }
+
+                        // 更新上次讀到
+                        const lastReadingText = document.querySelector('.study-stats .d-flex:last-child .ms-2');
+                        if (data.last_reading) {
+                            if (lastReadingText) {
+                                lastReadingText.textContent = data.last_reading.replace('章', '篇');
+                            }
+                        } else {
+                            if (lastReadingText) {
+                                lastReadingText.textContent = '尚未開始閱讀';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            // 打開上次閱讀的章節
+            function openLastReading(lastTag) {
+                console.log('openLastReading called with:', lastTag);
+                if (!lastTag) {
+                    console.log('No lastTag provided');
+                    return;
+                }
+                
+                const [bookCode, chapter] = lastTag.split('-');
+                console.log('Parsed bookCode:', bookCode, 'chapter:', chapter);
+                if (!bookCode || !chapter) {
+                    console.log('Invalid bookCode or chapter');
+                    return;
+                }
+                
+                // 設置書籍選擇器
+                const bookSelector = document.getElementById('bookSelector');
+                console.log('Setting bookSelector value to:', bookCode);
+                
+                // 檢查所有選項的值
+                console.log('Available options:', Array.from(bookSelector.options).map(opt => opt.value));
+                
+                // 確保選項存在（不區分大小寫）
+                const option = Array.from(bookSelector.options).find(opt => 
+                    opt.value.toLowerCase() === bookCode.toLowerCase()
+                );
+                if (option) {
+                    bookSelector.value = option.value;
+                    // 觸發書籍選擇事件
+                    handleBookSelection();
+                    // 等待章節按鈕加載完成後再點擊對應的章節
+                    setTimeout(() => {
+                        const chapterBtn = document.querySelector(`.chapter-btn[data-chapter="${chapter}"]`);
+                        if (chapterBtn) {
+                            chapterBtn.click();
+                        }
+                    }, 500);
+                } else {
+                    console.error('Book option not found:', bookCode);
+                    return;
+                }
+            }
+
+            let audioPlayer = document.getElementById('audioPlayer');
+            let isPlaying = false;
+            let currentBook = '';
+            let currentChapter = '';
+
+            // 播放/暫停切換
+            function togglePlay() {
+                console.log('togglePlay called');
+                console.log('currentBook:', currentBook);
+                console.log('currentChapter:', currentChapter);
+                console.log('isPlaying:', isPlaying);
+                console.log('audioPlayer.src:', audioPlayer.src);
+
+                // 如果 src 為空或是根路徑，就設置新的音頻源
+                if (!audioPlayer.src || audioPlayer.src === 'http://127.0.0.1:5000/' || audioPlayer.src === window.location.origin + '/') {
+                    console.log('Setting new audio source');
+                    const bookFolder = currentBook.toLowerCase();
+                    const chapterNum = currentChapter.toString().padStart(3, '0');
+                    const folderPrefix = bookFolder === 'gen' ? '01' :
+                                       bookFolder === 'exo' ? '02' :
+                                       bookFolder === 'lev' ? '03' :
+                                       bookFolder === 'num' ? '04' :
+                                       bookFolder === 'detu' ? '05' :
+                                       bookFolder === 'jos' ? '06' :
+                                       bookFolder === 'jud' ? '07' :
+                                       bookFolder === 'ruth' ? '08' :
+                                       bookFolder === 'sam' ? '09' :
+                                       bookFolder === 'king' ? '10' :
+                                       bookFolder === 'chr' ? '11' :
+                                       bookFolder === 'ezr' ? '12' :
+                                       bookFolder === 'neh' ? '13' :
+                                       bookFolder === 'est' ? '14' :
+                                       bookFolder === 'job' ? '15' :
+                                       bookFolder === 'psa' ? '16' :
+                                       bookFolder === 'pro' ? '17' :
+                                       bookFolder === 'ecc' ? '18' :
+                                       bookFolder === 'song' ? '19' :
+                                       bookFolder === 'isa' ? '20' :
+                                       bookFolder === 'jer' ? '21' :
+                                       bookFolder === 'lam' ? '22' :
+                                       bookFolder === 'eze' ? '23' :
+                                       bookFolder === 'dan' ? '24' :
+                                       bookFolder === 'hos' ? '25' :
+                                       bookFolder === 'joe' ? '26' :
+                                       bookFolder === 'amos' ? '27' :
+                                       bookFolder === 'oba' ? '28' :
+                                       bookFolder === 'jona' ? '29' :
+                                       bookFolder === 'mich' ? '30' :
+                                       bookFolder === 'nahu' ? '31' :
+                                       bookFolder === 'haba' ? '32' :
+                                       bookFolder === 'zeph' ? '33' :
+                                       bookFolder === 'hag' ? '34' :
+                                       bookFolder === 'zech' ? '35' :
+                                       bookFolder === 'mala' ? '36' :
+                                       bookFolder === 'matt' ? '37' :
+                                       bookFolder === 'mark' ? '38' :
+                                       bookFolder === 'luke' ? '39' :
+                                       bookFolder === 'john' ? '40' :
+                                       bookFolder === 'acts' ? '41' :
+                                       bookFolder === 'roma' ? '42' :
+                                       bookFolder === '1cor' ? '43' :
+                                       bookFolder === '2cor' ? '44' :
+                                       bookFolder === 'gala' ? '45' :
+                                       bookFolder === 'ephi' ? '46' :
+                                       bookFolder === 'phil' ? '47' :
+                                       bookFolder === 'colo' ? '48' :
+                                       bookFolder === '1the' ? '49' :
+                                       bookFolder === '2the' ? '50' :
+                                       bookFolder === '1tim' ? '51' :
+                                       bookFolder === '2tim' ? '52' :
+                                       bookFolder === 'titu' ? '53' :
+                                       bookFolder === 'phmn' ? '54' :
+                                       bookFolder === 'hebr' ? '55' :
+                                       bookFolder === 'jame' ? '56' :
+                                       bookFolder === '1pet' ? '57' :
+                                       bookFolder === '2pet' ? '58' :
+                                       bookFolder === '1joh' ? '59' :
+                                       bookFolder === '2joh' ? '60' :
+                                       bookFolder === '3joh' ? '61' :
+                                       bookFolder === 'juda' ? '62' :
+                                       bookFolder === 'reve' ? '63' : '';
+                    
+                    console.log('bookFolder:', bookFolder);
+                    console.log('chapterNum:', chapterNum);
+                    console.log('folderPrefix:', folderPrefix);
+                    
+                    const audioPath = `/static/audio/${folderPrefix}${bookFolder}/${chapterNum}.mp3`;
+                    console.log('audioPath:', audioPath);
+                    
+                    audioPlayer.src = audioPath;
+                    console.log('audioPlayer.src set to:', audioPlayer.src);
+                    
+                    audioPlayer.load();
+                    console.log('audioPlayer.load() called');
+                    
+                    audioPlayer.play()
+                        .then(() => {
+                            console.log('Audio playback started successfully');
+                            document.getElementById('playButton').innerHTML = '<i class="bi bi-pause-fill"></i>';
+                            isPlaying = true;
+                        })
+                        .catch(error => {
+                            console.error('Error playing audio:', error);
+                            alert('無法播放音頻文件，請確認文件是否存在。');
+                        });
+                } else {
+                    console.log('Toggling existing audio');
+                    if (isPlaying) {
+                        console.log('Pausing audio');
+                        audioPlayer.pause();
+                        document.getElementById('playButton').innerHTML = '<i class="bi bi-play-fill"></i>';
+                        isPlaying = false;
+                    } else {
+                        console.log('Resuming audio');
+                        audioPlayer.play()
+                            .then(() => {
+                                console.log('Audio resumed successfully');
+                                document.getElementById('playButton').innerHTML = '<i class="bi bi-pause-fill"></i>';
+                                isPlaying = true;
+                            })
+                            .catch(error => {
+                                console.error('Error resuming audio:', error);
+                                alert('無法播放音頻文件，請確認文件是否存在。');
+                            });
+                    }
+                }
+            }
+
+            // 切換設定面板顯示
+            function toggleSettings() {
+                const panel = document.getElementById('settingsPanel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        </script>
+    {% else %}
+        <div class="text-center mt-5">
+            <h2>歡迎來到生命讀經平台</h2>
+            <p class="lead">請登入以開始您的學習之旅</p>
+            <div class="mt-4">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary me-2">登入</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">註冊</a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

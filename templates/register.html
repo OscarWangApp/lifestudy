@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}註冊{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center my-5">
+    <div class="card p-4" style="width: 25rem;">
+        <h2 class="text-center">註冊</h2>
+        {% if error %}
+            <div class="alert alert-danger" id="error-msg">{{ error }}</div>
+        {% else %}
+            <div class="alert alert-danger d-none" id="error-msg"></div>
+        {% endif %}
+        <form method="POST">
+            <div class="mb-3">
+                <label for="account" class="form-label">帳號</label>
+                <input type="text" class="form-control" id="account" name="account" required onblur="checkAccountUnique()">
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">密碼</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <!-- City Selector -->
+            <div class="mb-3">
+                <label for="city" class="form-label">城市</label>
+                <select id="city" name="city" class="form-select" onchange="updateHalls()">
+                    <option value="">選擇城市</option>
+                </select>
+            </div>
+
+            <!-- Hall Selector -->
+            <div class="mb-3">
+                <label for="hall" class="form-label">會所</label>
+                <select id="hall" name="hall" class="form-select" onchange="updateDistricts()">
+                    <option value="">選擇會所</option>
+                </select>
+            </div>
+
+            <!-- District Selector -->
+            <div class="mb-3">
+                <label for="district" class="form-label">區</label>
+                <select id="district" name="district" class="form-select">
+                    <option value="">選擇區</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="birth_year" class="form-label">出生年</label>
+                <select class="form-select" id="birth_year" name="birth_year" required>
+                    <option value="">選擇出生年</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">註冊</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    var locations = JSON.parse('{{ locations | tojson | safe }}');
+
+    function populateCities() {
+        var citySelector = document.getElementById("city");
+        var uniqueCities = new Set();
+
+        locations.forEach(location => uniqueCities.add(location[1]));
+
+        uniqueCities.forEach(city => {
+            var option = document.createElement("option");
+            option.value = city;
+            option.textContent = city;
+            citySelector.appendChild(option);
+        });
+    }
+
+    function updateHalls() {
+        var citySelector = document.getElementById("city");
+        var hallSelector = document.getElementById("hall");
+        var districtSelector = document.getElementById("district");
+
+        var selectedCity = citySelector.value;
+
+        hallSelector.innerHTML = "<option value=''>選擇會所</option>";
+        districtSelector.innerHTML = "<option value=''>選擇區</option>";
+
+        var uniqueHalls = new Set();
+
+        locations.forEach(location => {
+            if (location[1] === selectedCity) {
+                uniqueHalls.add(location[2]);
+            }
+        });
+
+        uniqueHalls.forEach(hall => {
+            var option = document.createElement("option");
+            option.value = hall;
+            option.textContent = hall;
+            hallSelector.appendChild(option);
+        });
+
+        // Clear districts when city is changed
+        updateDistricts();
+    }
+
+    function updateDistricts() {
+        var citySelector = document.getElementById("city");
+        var hallSelector = document.getElementById("hall");
+        var districtSelector = document.getElementById("district");
+
+        var selectedCity = citySelector.value;
+        var selectedHall = hallSelector.value;
+
+        districtSelector.innerHTML = "<option value=''>選擇區</option>";
+
+        var uniqueDistricts = new Set();
+
+        locations.forEach(location => {
+            if (location[1] === selectedCity && location[2] === selectedHall) {
+                uniqueDistricts.add(location[3]);
+            }
+        });
+
+        uniqueDistricts.forEach(district => {
+            var option = document.createElement("option");
+            option.value = district;
+            option.textContent = district;
+            districtSelector.appendChild(option);
+        });
+    }
+
+    // Populate city dropdown on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        populateCities();
+        populateBirthYears();
+    });
+
+    function populateBirthYears() {
+        const birthYearSelect = document.getElementById("birth_year");
+        const currentYear = new Date().getFullYear();
+        const startYear = currentYear - 80;
+
+        for (let year = currentYear; year >= startYear; year--) {
+            const option = document.createElement("option");
+            option.value = year;
+            option.textContent = year;
+            birthYearSelect.appendChild(option);
+        }
+    }
+
+    //check account at first
+    function checkAccountUnique() {
+        var accountInput = document.getElementById("account");
+        var errorMsg = document.getElementById("error-msg");
+
+        fetch("/auth/check_account?account=" + accountInput.value)
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    accountInput.value = ""; // Clear input
+                    errorMsg.textContent = "此帳號已被使用，請選擇其他帳號。";
+                    errorMsg.classList.remove("d-none"); // Show error message
+                    accountInput.focus(); // Refocus on input
+                } else {
+                    errorMsg.classList.add("d-none"); // Hide error message
+                }
+            })
+            .catch(error => console.error("Error:", error));
+    }
+</script>
+
+{% endblock %}

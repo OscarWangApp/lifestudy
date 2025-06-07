@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}用戶管理{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">用戶管理</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>帳號</th>
+                    <th>地區</th>
+                    <th>出生年</th>
+                    <th>成就</th>
+                    <th>權限等級</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.account }}</td>
+                    <td>{{ user.location }}</td>
+                    <td>{{ user.birth_year }}</td>
+                    <td>{{ user.achievement }}</td>
+                    <td>
+                        <select class="form-select auth-select" data-account="{{ user.account }}">
+                            <option value="1" {% if user.auth == '1' %}selected{% endif %}>一般用戶</option>
+                            <option value="2" {% if user.auth == '2' %}selected{% endif %}>編輯者</option>
+                            <option value="3" {% if user.auth == '3' %}selected{% endif %}>管理員</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm delete-user" data-account="{{ user.account }}">刪除</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 處理權限變更
+    document.querySelectorAll('.auth-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const account = this.dataset.account;
+            const newAuth = this.value;
+            
+            fetch('/auth/update_auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account: account,
+                    auth: newAuth
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('權限等級更新成功');
+                } else {
+                    alert('更新權限等級失敗');
+                    // 如果更新失敗，恢復原來的選項
+                    this.value = this.getAttribute('data-original-value');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新權限等級時發生錯誤');
+            });
+        });
+        
+        // 保存原始值
+        select.setAttribute('data-original-value', select.value);
+    });
+
+    // 處理刪除用戶
+    document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const account = this.dataset.account;
+            if (confirm(`確定要刪除用戶 ${account} 嗎？`)) {
+                fetch('/auth/delete_user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        account: account
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 從表格中移除該行
+                        this.closest('tr').remove();
+                        alert('用戶刪除成功');
+                    } else {
+                        alert('刪除用戶失敗');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刪除用戶時發生錯誤');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

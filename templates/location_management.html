@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}地區管理{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">地區管理</h2>
+    
+    <!-- Add Location Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">新增地區</h5>
+        </div>
+        <div class="card-body">
+            <form id="addLocationForm">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="church" class="form-label">召會</label>
+                            <input type="text" class="form-control" id="church" name="church" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="district" class="form-label">區</label>
+                            <input type="text" class="form-control" id="district" name="district" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="hall" class="form-label">會所</label>
+                            <input type="text" class="form-control" id="hall" name="hall" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">新增</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Locations Table -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>召會</th>
+                    <th>區</th>
+                    <th>會所</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in locations %}
+                <tr>
+                    <td>{{ location.church }}</td>
+                    <td>{{ location.district }}</td>
+                    <td>{{ location.hall }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-location" 
+                                data-id="{{ location.id }}"
+                                data-church="{{ location.church }}"
+                                data-district="{{ location.district }}"
+                                data-hall="{{ location.hall }}">
+                            編輯
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-location" data-id="{{ location.id }}">
+                            刪除
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Location Modal -->
+<div class="modal fade" id="editLocationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">編輯地區</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editLocationForm">
+                    <input type="hidden" id="editLocationId">
+                    <div class="mb-3">
+                        <label for="editChurch" class="form-label">召會</label>
+                        <input type="text" class="form-control" id="editChurch" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDistrict" class="form-label">區</label>
+                        <input type="text" class="form-control" id="editDistrict" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editHall" class="form-label">會所</label>
+                        <input type="text" class="form-control" id="editHall" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveEditLocation">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add Location
+    document.getElementById('addLocationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const data = {
+            church: document.getElementById('church').value,
+            district: document.getElementById('district').value,
+            hall: document.getElementById('hall').value
+        };
+        
+        fetch('/location/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('地區新增成功');
+                location.reload();
+            } else {
+                alert('新增地區失敗：' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('新增地區時發生錯誤');
+        });
+    });
+
+    // Edit Location
+    const editModal = new bootstrap.Modal(document.getElementById('editLocationModal'));
+    
+    document.querySelectorAll('.edit-location').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const church = this.dataset.church;
+            const district = this.dataset.district;
+            const hall = this.dataset.hall;
+            
+            document.getElementById('editLocationId').value = id;
+            document.getElementById('editChurch').value = church;
+            document.getElementById('editDistrict').value = district;
+            document.getElementById('editHall').value = hall;
+            
+            editModal.show();
+        });
+    });
+
+    // Save Edit
+    document.getElementById('saveEditLocation').addEventListener('click', function() {
+        const data = {
+            id: document.getElementById('editLocationId').value,
+            church: document.getElementById('editChurch').value,
+            district: document.getElementById('editDistrict').value,
+            hall: document.getElementById('editHall').value
+        };
+        
+        fetch('/location/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('地區更新成功');
+                location.reload();
+            } else {
+                alert('更新地區失敗：' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('更新地區時發生錯誤');
+        });
+    });
+
+    // Delete Location
+    document.querySelectorAll('.delete-location').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('確定要刪除此地區嗎？')) {
+                const id = this.dataset.id;
+                
+                fetch('/location/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('tr').remove();
+                        alert('地區刪除成功');
+                    } else {
+                        alert('刪除地區失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刪除地區時發生錯誤');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 
